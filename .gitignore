@@ -1,0 +1,8 @@
+node_modules/
+dist/
+webview-ui/dist/
+*.vsix
+.vscode-test/
+test-results/
+playwright-report/
+npm-debug.log*

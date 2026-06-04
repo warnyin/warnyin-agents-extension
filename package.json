@@ -1,0 +1,144 @@
+{
+  "name": "warnyin-agents-extension",
+  "displayName": "Warnyin Agents",
+  "description": "Pixel command center for the Warnyin Standard Workflow and Claude Code agents.",
+  "version": "0.1.0",
+  "publisher": "warnyin",
+  "license": "MIT",
+  "icon": "logo.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/warnyin/warnyin-agents-extension"
+  },
+  "homepage": "https://github.com/warnyin/warnyin-agents-extension",
+  "bugs": {
+    "url": "https://github.com/warnyin/warnyin-agents-extension/issues"
+  },
+  "keywords": [
+    "warnyin",
+    "agents",
+    "claude",
+    "workflow",
+    "pixel",
+    "vscode-extension"
+  ],
+  "galleryBanner": {
+    "color": "#f4ead9",
+    "theme": "light"
+  },
+  "engines": {
+    "vscode": "^1.93.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished",
+    "onView:warnyinAgents.view"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "warnyinAgents.showPanel",
+        "title": "Warnyin Agents: Show Panel"
+      },
+      {
+        "command": "warnyinAgents.install",
+        "title": "Warnyin Agents: Install Workflow"
+      },
+      {
+        "command": "warnyinAgents.dryRun",
+        "title": "Warnyin Agents: Dry Run Installer"
+      },
+      {
+        "command": "warnyinAgents.update",
+        "title": "Warnyin Agents: Update Workflow"
+      },
+      {
+        "command": "warnyinAgents.focusTerminal",
+        "title": "Warnyin Agents: Focus Terminal"
+      },
+      {
+        "command": "warnyinAgents.exportLayout",
+        "title": "Warnyin Agents: Export Office Layout"
+      },
+      {
+        "command": "warnyinAgents.importLayout",
+        "title": "Warnyin Agents: Import Office Layout"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "warnyinAgents",
+          "title": "Warnyin Agents",
+          "icon": "logo.png"
+        }
+      ]
+    },
+    "views": {
+      "warnyinAgents": [
+        {
+          "type": "webview",
+          "id": "warnyinAgents.view",
+          "name": "Warnyin Agents"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Warnyin Agents",
+      "properties": {
+        "warnyinAgents.watchClaudeTranscripts": {
+          "type": "boolean",
+          "default": true,
+          "description": "Watch Claude Code JSONL transcripts for the current workspace."
+        },
+        "warnyinAgents.launchCommand": {
+          "type": "string",
+          "default": "claude",
+          "description": "Command used to launch Claude Code in the Warnyin Agents terminal."
+        },
+        "warnyinAgents.notifyOnBlocked": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show a VS Code notification when the transcript parser detects a blocked, failed, or permission-like state."
+        },
+        "warnyinAgents.soundCues": {
+          "type": "boolean",
+          "default": false,
+          "description": "Play optional webview sound cues for sent commands, blocked or failed agents, verify passes, and ship-ready states."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build:webview": "vite build --config webview-ui/vite.config.ts",
+    "compile:extension": "tsc -p tsconfig.json",
+    "compile": "npm run build:webview && npm run compile:extension",
+    "build": "npm run compile",
+    "watch:webview": "vite build --watch --config webview-ui/vite.config.ts",
+    "watch:extension": "tsc -w -p tsconfig.json",
+    "typecheck:webview": "tsc -p webview-ui/tsconfig.json --noEmit",
+    "test": "vitest run src/domain.test.ts",
+    "smoke:webview": "playwright test --config playwright.config.ts",
+    "check": "npm run test && npm run typecheck:webview && npm run compile",
+    "vscode:prepublish": "npm run compile",
+    "package:vsix": "vsce package --allow-missing-repository"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@types/vscode": "^1.93.0",
+    "@vitejs/plugin-react": "^5.1.1",
+    "@vscode/vsce": "^3.7.2",
+    "lucide-react": "^0.559.0",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.7",
+    "vitest": "^4.0.15"
+  }
+}

@@ -1,0 +1,17 @@
+node_modules/
+src/
+webview-ui/src/
+webview-ui/index.html
+webview-ui/tsconfig.json
+webview-ui/vite.config.ts
+**/*.map
+docs/
+tests/
+test-results/
+playwright-report/
+playwright.config.ts
+.gitignore
+.vscode/
+tsconfig.json
+package-lock.json
+src/**/*.test.ts
