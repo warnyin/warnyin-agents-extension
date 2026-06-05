@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1
+
+- Improves narrow VS Code panel responsiveness.
+- Collapses secondary Terminal, Agents, and Commands panels by default.
+- Enlarges the pixel office room in compact layouts and removes horizontal overflow.
+
 ## 0.1.0
 
 - Initial Warnyin Agents MVP.

@@ -51,7 +51,7 @@ npm run package:vsix
 
 `npm run check` runs unit tests, webview typecheck, webview production build, and extension TypeScript compile.
 `npm run smoke:webview` runs the Playwright webview/canvas smoke test.
-`npm run package:vsix` creates `warnyin-agents-extension-0.1.0.vsix`.
+`npm run package:vsix` creates `warnyin-agents-extension-0.1.1.vsix`.
 
 To run inside VS Code:
 

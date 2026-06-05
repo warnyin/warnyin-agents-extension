@@ -43,6 +43,29 @@ test('webview renders command shell and nonblank pixel office canvas', async ({ 
   await expect(page.locator('.pixelAgentsFooter')).toContainText('agents');
 });
 
+test('narrow webview keeps secondary panels collapsed without horizontal overflow', async ({ page }) => {
+  await page.setViewportSize({ width: 475, height: 900 });
+  await page.goto('/');
+
+  await expect(page.getByRole('heading', { name: 'Warnyin Pixel Agents' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Warnyin terminal' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Terminal/ })).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.getByRole('button', { name: /Agents/ })).toHaveAttribute('aria-expanded', 'false');
+
+  const layout = await page.evaluate(() => ({
+    scrollWidth: document.body.scrollWidth,
+    innerWidth: window.innerWidth,
+    canvas: (() => {
+      const rect = document.querySelector('canvas')?.getBoundingClientRect();
+      return rect ? { width: rect.width, height: rect.height } : undefined;
+    })(),
+  }));
+
+  expect(layout.scrollWidth).toBeLessThanOrEqual(layout.innerWidth);
+  expect(layout.canvas?.width).toBeGreaterThan(420);
+  expect(layout.canvas?.height).toBeLessThanOrEqual(380);
+});
+
 async function readCanvasStats(canvas: Locator) {
   return canvas.evaluate((element) => {
     const canvasElement = element as HTMLCanvasElement;
