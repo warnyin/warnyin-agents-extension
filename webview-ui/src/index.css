@@ -231,6 +231,7 @@ h2 {
   grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.95fr);
   gap: 10px;
   margin-top: 10px;
+  align-items: start;
 }
 
 .sceneStatusGrid .panelSection {
@@ -471,6 +472,57 @@ h2 {
   color: var(--cocoa);
 }
 
+.collapsibleSection {
+  padding: 0;
+  overflow: hidden;
+}
+
+.collapsibleTitle {
+  width: 100%;
+  min-height: 46px;
+  justify-content: flex-start;
+  margin: 0;
+  padding: 10px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--cocoa);
+  text-align: left;
+}
+
+.collapsibleTitle:hover {
+  transform: none;
+  background: rgba(244, 234, 217, 0.44);
+}
+
+.collapsibleTitle h2 {
+  flex: 0 0 auto;
+}
+
+.collapsibleTitle span {
+  min-width: 0;
+  margin-left: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(75, 36, 20, 0.58);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.collapseChevron {
+  flex: 0 0 auto;
+  transition: transform 140ms ease;
+}
+
+.collapsibleSection.open .collapseChevron {
+  transform: rotate(180deg);
+}
+
+.collapsibleBody {
+  padding: 0 10px 10px;
+}
+
 .terminalSection {
   display: grid;
   gap: 8px;
@@ -587,11 +639,16 @@ h2 {
   position: sticky;
   top: 0;
   z-index: 1;
-  margin: -10px -10px 8px;
+  margin: 0;
   padding: 10px;
   border-bottom: 1px solid rgba(210, 180, 140, 0.58);
   background: rgba(255, 248, 235, 0.96);
   backdrop-filter: blur(6px);
+}
+
+.commandSection.collapsed .sectionTitle,
+.rosterSection.collapsed .sectionTitle {
+  border-bottom: 0;
 }
 
 .lockedSection {

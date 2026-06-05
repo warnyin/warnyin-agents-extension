@@ -1,5 +1,6 @@
 import {
   CheckCircle2,
+  ChevronDown,
   Code2,
   Compass,
   Download,
@@ -460,11 +461,13 @@ function InstalledCommands({ state }: { state: WarnyinState }) {
   const stagePreview = stageSlug ? `/warnyin:<stage> ${stageSlug}` : '/warnyin:<stage> <slug>';
 
   return (
-    <section className="panelSection commandSection">
-      <div className="sectionTitle">
-        <Radio size={16} />
-        <h2>Commands</h2>
-      </div>
+    <CollapsiblePanel
+      className="commandSection"
+      icon={<Radio size={16} />}
+      title="Commands"
+      summary="Init, Skill, Codemap, Update"
+      defaultOpen={false}
+    >
 
       <div className="quickGrid">
         <button className="commandTile" onClick={() => runCommand('init')}>
@@ -570,7 +573,7 @@ function InstalledCommands({ state }: { state: WarnyinState }) {
         <StageCommand id="ship" label="Ship" icon={<CheckCircle2 size={16} />} slug={stageSlug} setSlug={setStageSlug} slugs={slugOptions} />
         <code className="commandPreview">{stagePreview}</code>
       </div>
-    </section>
+    </CollapsiblePanel>
   );
 }
 
@@ -772,13 +775,16 @@ function AgentRoster({ state }: { state: WarnyinState }) {
     const bench = state.roleBench.filter((agent) => !activeIds.has(agent.id));
     return [...active, ...bench].slice(0, 14);
   }, [state.roleBench, state.transcript.agents]);
+  const activeCount = agents.filter((agent) => agent.status !== 'offline').length;
 
   return (
-    <section className="panelSection rosterSection">
-      <div className="sectionTitle">
-        <Terminal size={16} />
-        <h2>Agents</h2>
-      </div>
+    <CollapsiblePanel
+      className="rosterSection"
+      icon={<Terminal size={16} />}
+      title="Agents"
+      summary={`${activeCount} active / ${agents.length} total`}
+      defaultOpen={false}
+    >
       <div className="tokenLine" title="Claude Code transcript token usage">
         Tokens: in {formatCount(state.transcript.tokenUsage.input)}
         {' '}
@@ -801,6 +807,43 @@ function AgentRoster({ state }: { state: WarnyinState }) {
           </div>
         ))}
       </div>
+    </CollapsiblePanel>
+  );
+}
+
+function CollapsiblePanel({
+  className,
+  icon,
+  title,
+  summary,
+  defaultOpen,
+  children,
+}: {
+  className?: string;
+  icon: ReactNode;
+  title: string;
+  summary?: string;
+  defaultOpen?: boolean;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen ?? true);
+  const panelId = `${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-panel`;
+
+  return (
+    <section className={`panelSection collapsibleSection ${className ?? ''} ${open ? 'open' : 'collapsed'}`}>
+      <button
+        className="sectionTitle collapsibleTitle"
+        type="button"
+        aria-expanded={open}
+        aria-controls={panelId}
+        onClick={() => setOpen((value) => !value)}
+      >
+        {icon}
+        <h2>{title}</h2>
+        {summary ? <span>{summary}</span> : null}
+        <ChevronDown size={16} className="collapseChevron" />
+      </button>
+      {open ? <div id={panelId} className="collapsibleBody">{children}</div> : null}
     </section>
   );
 }
