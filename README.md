@@ -9,7 +9,7 @@ Pixel command center for the Warnyin Standard Workflow and Claude Code agents.
   - `npx @warnyin/agents`
   - `npx @warnyin/agents --dry-run`
   - `npx @warnyin/agents --update`
-- Opens a dedicated `Warnyin Agents` terminal for Claude Code.
+- Opens a dedicated native VS Code terminal named `Warnyin Agents` for Claude Code. The terminal button starts it if needed and focuses it when it already exists.
 - Sends every current Warnyin slash command through short forms:
   - `/warnyin:init`
   - `/warnyin:install-skill [role]`

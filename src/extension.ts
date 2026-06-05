@@ -458,12 +458,21 @@ class WarnyinAgentsViewProvider implements vscode.WebviewViewProvider, vscode.Di
   }
 
   focusTerminal(): void {
-    const terminal = vscode.window.terminals.find((item) => item.name === WARNYIN_TERMINAL_NAME);
-    if (!terminal) {
-      this.postToast('No Warnyin Agents terminal is open yet.', 'warning');
+    const folder = getPrimaryWorkspaceFolder();
+    if (!folder) {
+      this.postToast('Open a workspace folder before starting Warnyin terminal.', 'warning');
       return;
     }
-    terminal.show();
+
+    const terminal = vscode.window.terminals.find((item) => item.name === WARNYIN_TERMINAL_NAME);
+    if (terminal) {
+      terminal.show();
+      return;
+    }
+
+    this.openWarnyinTerminal(folder.uri.fsPath, true);
+    this.postToast(`Started ${WARNYIN_TERMINAL_NAME} terminal.`, 'info');
+    this.scheduleRefresh(1_000);
   }
 
   async exportOfficeLayout(): Promise<void> {
@@ -877,19 +886,8 @@ class WarnyinAgentsViewProvider implements vscode.WebviewViewProvider, vscode.Di
       return;
     }
 
-    const existingTerminal = vscode.window.terminals.find((item) => item.name === WARNYIN_TERMINAL_NAME);
-    const terminal = existingTerminal ?? vscode.window.createTerminal({
-      name: WARNYIN_TERMINAL_NAME,
-      cwd: folder.uri.fsPath,
-    });
-    terminal.show();
-
-    if (!existingTerminal) {
-      const launchCommand = vscode.workspace
-        .getConfiguration('warnyinAgents')
-        .get<string>('launchCommand', 'claude')
-        .trim() || 'claude';
-      terminal.sendText(launchCommand);
+    const { terminal, created } = this.openWarnyinTerminal(folder.uri.fsPath, true);
+    if (created) {
       setTimeout(() => terminal.sendText(slashCommand), 1_500);
     } else {
       terminal.sendText(slashCommand);
@@ -898,6 +896,34 @@ class WarnyinAgentsViewProvider implements vscode.WebviewViewProvider, vscode.Di
     await this.recordCommandHistory(folder.uri.fsPath, commandId, slashCommand);
     this.postToast(`Sent ${slashCommand.split(' ')[0]} to ${WARNYIN_TERMINAL_NAME}.`, 'info');
     this.scheduleRefresh(2_000);
+  }
+
+  private openWarnyinTerminal(workspacePath: string, launchClaude: boolean): {
+    terminal: vscode.Terminal;
+    created: boolean;
+  } {
+    const existingTerminal = vscode.window.terminals.find((item) => item.name === WARNYIN_TERMINAL_NAME);
+    if (existingTerminal) {
+      existingTerminal.show();
+      return { terminal: existingTerminal, created: false };
+    }
+
+    const terminal = vscode.window.createTerminal({
+      name: WARNYIN_TERMINAL_NAME,
+      cwd: workspacePath,
+    });
+    terminal.show();
+    if (launchClaude) {
+      terminal.sendText(this.getLaunchCommand());
+    }
+    return { terminal, created: true };
+  }
+
+  private getLaunchCommand(): string {
+    return vscode.workspace
+      .getConfiguration('warnyinAgents')
+      .get<string>('launchCommand', 'claude')
+      .trim() || 'claude';
   }
 
   private async recordCommandHistory(

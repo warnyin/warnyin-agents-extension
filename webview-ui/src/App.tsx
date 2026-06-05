@@ -306,7 +306,7 @@ function Header({ state }: { state: WarnyinState }) {
         </button>
         <button
           className={`iconButton ${state.terminal.isOpen ? 'active' : ''}`}
-          title="Focus Warnyin terminal"
+          title="Start or focus Warnyin terminal"
           onClick={() => vscode.postMessage({ type: 'focusTerminal' })}
         >
           <Terminal size={17} />
