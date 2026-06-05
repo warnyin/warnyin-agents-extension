@@ -16,12 +16,29 @@ import { vscode } from './vscode';
 const LOGICAL_WIDTH = 960;
 const LOGICAL_HEIGHT = 520;
 const HISTORY_LIMIT = 50;
+const ISO_WORLD = { minX: 52, maxX: 908, minY: 145, maxY: 454 };
+const ISO_CENTER = { x: 480, y: 300 };
+const ISO_ORIGIN = { x: 490, y: 262 };
+const ISO_SCALE_X = 0.64;
+const ISO_SCALE_Y = 0.32;
+const WALK_STEP = 4.8;
+
+type FacingDirection = 'up' | 'down' | 'left' | 'right';
 
 interface BulkDragOrigin {
   point: { x: number; y: number };
   layout: OfficeLayout;
   seatIds: string[];
   furnitureIds: string[];
+}
+
+interface PlayerPosition {
+  x: number;
+  y: number;
+  targetX: number;
+  targetY: number;
+  facing: FacingDirection;
+  moving: boolean;
 }
 
 const statusColors: Record<string, string> = {
@@ -36,6 +53,7 @@ const statusColors: Record<string, string> = {
 
 export default function PixelOffice({ state }: { state: WarnyinState }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const playerRef = useRef<PlayerPosition | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [draftLayout, setDraftLayout] = useState<OfficeLayout>(state.officeLayout);
   const [layoutHistory, setLayoutHistory] = useState<{ past: OfficeLayout[]; future: OfficeLayout[] }>({
@@ -60,6 +78,7 @@ export default function PixelOffice({ state }: { state: WarnyinState }) {
   }, [state.roleBench, state.transcript.agents]);
   const activeLayout = editMode ? draftLayout : state.officeLayout;
   const placements = useMemo(() => placeAgents(agents, activeLayout), [activeLayout, agents]);
+  const mainSeat = useMemo(() => activeLayout.seats.find((seat) => seat.id === 'main') ?? activeLayout.seats[0], [activeLayout.seats]);
   const selectedAgent = placements.find(({ agent }) => agent.id === selectedAgentId)?.agent;
   const selectedPreset = state.officePresets.find((preset) => preset.id === selectedPresetId);
   const palette = useMemo(() => {
@@ -75,6 +94,29 @@ export default function PixelOffice({ state }: { state: WarnyinState }) {
       setSelectedFurnitureIds([]);
     }
   }, [editMode, state.officeLayout]);
+
+  useEffect(() => {
+    if (!mainSeat) {
+      return;
+    }
+    if (!playerRef.current) {
+      playerRef.current = {
+        x: mainSeat.x,
+        y: mainSeat.y,
+        targetX: mainSeat.x,
+        targetY: mainSeat.y,
+        facing: 'down',
+        moving: false,
+      };
+      return;
+    }
+    if (!playerRef.current.moving) {
+      playerRef.current.x = clamp(mainSeat.x, ISO_WORLD.minX, ISO_WORLD.maxX);
+      playerRef.current.y = clamp(mainSeat.y, ISO_WORLD.minY, ISO_WORLD.maxY);
+      playerRef.current.targetX = playerRef.current.x;
+      playerRef.current.targetY = playerRef.current.y;
+    }
+  }, [mainSeat]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -99,7 +141,12 @@ export default function PixelOffice({ state }: { state: WarnyinState }) {
 
     const render = () => {
       frame += 1;
-      drawOffice(ctx, placements, state, activeLayout, palette, editMode, selectedAgentId, selectedSeatIds, selectedFurnitureIds, frame);
+      const player = playerRef.current ?? createPlayerFromSeat(mainSeat);
+      playerRef.current = player;
+      if (!editMode) {
+        updatePlayerPosition(player);
+      }
+      drawOffice(ctx, placements, state, activeLayout, palette, editMode, selectedAgentId, selectedSeatIds, selectedFurnitureIds, frame, player);
       animationId = window.requestAnimationFrame(render);
     };
 
@@ -110,14 +157,18 @@ export default function PixelOffice({ state }: { state: WarnyinState }) {
       window.removeEventListener('resize', resize);
       window.cancelAnimationFrame(animationId);
     };
-  }, [activeLayout, editMode, palette, placements, selectedAgentId, selectedFurnitureIds, selectedSeatIds, state]);
+  }, [activeLayout, editMode, mainSeat, palette, placements, selectedAgentId, selectedFurnitureIds, selectedSeatIds, state]);
 
   const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const point = pointerToLogicalPoint(event);
     if (!editMode) {
-      const placement = findAgentAt(placements, point.x, point.y);
+      const player = playerRef.current ?? createPlayerFromSeat(mainSeat);
+      playerRef.current = player;
+      const screenPlacements = toScreenPlacements(placements, player);
+      const placement = findAgentAt(screenPlacements, point.x, point.y);
       if (!placement) {
         setSelectedAgentId(null);
+        movePlayerToScreenPoint(player, point);
         return;
       }
       if (placement.agent.kind === 'main') {
@@ -397,6 +448,39 @@ export default function PixelOffice({ state }: { state: WarnyinState }) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [draftLayout, editMode, layoutHistory, selectedFurnitureIds]);
 
+  useEffect(() => {
+    if (editMode) {
+      return undefined;
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (shouldIgnoreMovementKey(event)) {
+        return;
+      }
+      const key = event.key.toLowerCase();
+      const player = playerRef.current ?? createPlayerFromSeat(mainSeat);
+      playerRef.current = player;
+      const distance = event.shiftKey ? 112 : 56;
+      if (key === 'arrowup' || key === 'w') {
+        event.preventDefault();
+        setPlayerTarget(player, player.targetX, player.targetY - distance);
+      }
+      if (key === 'arrowdown' || key === 's') {
+        event.preventDefault();
+        setPlayerTarget(player, player.targetX, player.targetY + distance);
+      }
+      if (key === 'arrowleft' || key === 'a') {
+        event.preventDefault();
+        setPlayerTarget(player, player.targetX - distance, player.targetY);
+      }
+      if (key === 'arrowright' || key === 'd') {
+        event.preventDefault();
+        setPlayerTarget(player, player.targetX + distance, player.targetY);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [editMode, mainSeat]);
+
   return (
     <div className="officeCanvasShell">
       <div className="layoutToolbar">
@@ -560,8 +644,26 @@ function drawOffice(
   selectedSeatIds: string[],
   selectedFurnitureIds: string[],
   frame: number,
+  player: PlayerPosition,
 ) {
   ctx.clearRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
+  if (!editMode) {
+    drawIsoRoom(ctx, state, frame);
+    drawIsoStageBoard(ctx, state);
+    drawIsoWorkflowActivity(ctx, state, frame);
+    drawIsoFurnitureLayer(ctx, layout.furniture);
+    const screenPlacements = toScreenPlacements(placements, player)
+      .sort((a, b) => a.seat.y - b.seat.y);
+    screenPlacements.forEach(({ agent, seat }, index) => {
+      if (selectedAgentId === agent.id) {
+        drawSelectionRing(ctx, seat.x, seat.y);
+      }
+      drawDesk(ctx, seat.x, seat.y + 36, agent.kind === 'main');
+      drawAgent(ctx, agent, seat, palette, frame + index * 7, agent.kind === 'main' && player.moving);
+    });
+    return;
+  }
+
   drawRoom(ctx, state);
   drawStageBoard(ctx, state);
   drawWorkflowActivity(ctx, state, frame);
@@ -598,6 +700,190 @@ function drawFurnitureLayer(
     }
     drawFurniture(ctx, item);
   }
+}
+
+function drawIsoFurnitureLayer(ctx: CanvasRenderingContext2D, furniture: FurnitureItem[]) {
+  for (const item of [...furniture].sort((a, b) => a.y - b.y)) {
+    const point = projectWorldPoint(item.x, item.y);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
+    ctx.fillRect(point.x - 28, point.y + 24, 56, 10);
+    drawFurniture(ctx, { ...item, x: point.x, y: point.y });
+  }
+}
+
+function drawIsoRoom(ctx: CanvasRenderingContext2D, state: WarnyinState, frame: number) {
+  const gradient = ctx.createLinearGradient(0, 0, 0, LOGICAL_HEIGHT);
+  gradient.addColorStop(0, '#07112e');
+  gradient.addColorStop(0.66, '#111a3f');
+  gradient.addColorStop(1, '#3f37a3');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
+
+  ctx.strokeStyle = 'rgba(132, 159, 214, 0.12)';
+  ctx.lineWidth = 1;
+  for (let x = -80; x < LOGICAL_WIDTH + 80; x += 40) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x + 240, LOGICAL_HEIGHT);
+    ctx.stroke();
+  }
+  for (let x = 120; x < LOGICAL_WIDTH + 260; x += 40) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x - 240, LOGICAL_HEIGHT);
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = '#d18b55';
+  drawIsoPolygon(ctx, [
+    projectWorldPoint(ISO_WORLD.minX, ISO_WORLD.minY),
+    projectWorldPoint(ISO_WORLD.maxX, ISO_WORLD.minY),
+    projectWorldPoint(ISO_WORLD.maxX, ISO_WORLD.maxY),
+    projectWorldPoint(ISO_WORLD.minX, ISO_WORLD.maxY),
+  ]);
+  ctx.fillStyle = '#bd7446';
+  drawIsoPolygon(ctx, [
+    projectWorldPoint(ISO_WORLD.minX, ISO_WORLD.maxY),
+    projectWorldPoint(ISO_WORLD.maxX, ISO_WORLD.maxY),
+    { x: projectWorldPoint(ISO_WORLD.maxX, ISO_WORLD.maxY).x, y: projectWorldPoint(ISO_WORLD.maxX, ISO_WORLD.maxY).y + 30 },
+    { x: projectWorldPoint(ISO_WORLD.minX, ISO_WORLD.maxY).x, y: projectWorldPoint(ISO_WORLD.minX, ISO_WORLD.maxY).y + 30 },
+  ]);
+
+  drawIsoFloorTiles(ctx);
+  drawIsoWall(ctx);
+  drawIsoRug(ctx);
+
+  ctx.fillStyle = '#ccebdc';
+  ctx.font = 'bold 28px ui-monospace, SFMono-Regular, Menlo, monospace';
+  ctx.shadowColor = 'rgba(75, 223, 191, 0.35)';
+  ctx.shadowBlur = 12;
+  ctx.fillText('WARNYIN AGENTS', 318, 48);
+  ctx.shadowBlur = 0;
+
+  ctx.fillStyle = state.installed ? '#58d68d' : '#f1b453';
+  ctx.font = 'bold 12px ui-monospace, SFMono-Regular, Menlo, monospace';
+  fitText(ctx, state.installed ? 'workflow online' : 'workflow locked', 392, 70, 190);
+
+  drawFloatingCodeWindow(ctx, frame);
+}
+
+function drawIsoFloorTiles(ctx: CanvasRenderingContext2D) {
+  ctx.strokeStyle = 'rgba(92, 54, 36, 0.28)';
+  ctx.lineWidth = 2;
+  for (let x = ISO_WORLD.minX; x <= ISO_WORLD.maxX; x += 56) {
+    const start = projectWorldPoint(x, ISO_WORLD.minY);
+    const end = projectWorldPoint(x, ISO_WORLD.maxY);
+    ctx.beginPath();
+    ctx.moveTo(start.x, start.y);
+    ctx.lineTo(end.x, end.y);
+    ctx.stroke();
+  }
+  for (let y = ISO_WORLD.minY; y <= ISO_WORLD.maxY; y += 56) {
+    const start = projectWorldPoint(ISO_WORLD.minX, y);
+    const end = projectWorldPoint(ISO_WORLD.maxX, y);
+    ctx.beginPath();
+    ctx.moveTo(start.x, start.y);
+    ctx.lineTo(end.x, end.y);
+    ctx.stroke();
+  }
+}
+
+function drawIsoWall(ctx: CanvasRenderingContext2D) {
+  const topLeft = projectWorldPoint(ISO_WORLD.minX, ISO_WORLD.minY);
+  const topRight = projectWorldPoint(ISO_WORLD.maxX, ISO_WORLD.minY);
+  const leftBack = { x: topLeft.x, y: topLeft.y - 112 };
+  const rightBack = { x: topRight.x, y: topRight.y - 112 };
+  ctx.fillStyle = '#576180';
+  drawIsoPolygon(ctx, [leftBack, rightBack, topRight, topLeft]);
+  ctx.strokeStyle = 'rgba(210, 227, 255, 0.38)';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(leftBack.x + 138, leftBack.y + 20, 210, 92);
+  ctx.fillStyle = 'rgba(8, 18, 46, 0.44)';
+  ctx.fillRect(leftBack.x + 142, leftBack.y + 24, 202, 84);
+  ctx.strokeStyle = 'rgba(210, 227, 255, 0.16)';
+  for (let index = 0; index < 4; index++) {
+    ctx.beginPath();
+    ctx.moveTo(leftBack.x + 182 + index * 42, leftBack.y + 24);
+    ctx.lineTo(leftBack.x + 182 + index * 42, leftBack.y + 108);
+    ctx.stroke();
+  }
+}
+
+function drawIsoRug(ctx: CanvasRenderingContext2D) {
+  ctx.fillStyle = '#5f9bb3';
+  drawIsoPolygon(ctx, [
+    projectWorldPoint(320, 210),
+    projectWorldPoint(700, 210),
+    projectWorldPoint(720, 350),
+    projectWorldPoint(300, 350),
+  ]);
+}
+
+function drawFloatingCodeWindow(ctx: CanvasRenderingContext2D, frame: number) {
+  const pulse = Math.round((Math.sin(frame / 20) + 1) * 2);
+  ctx.fillStyle = '#1a2445';
+  ctx.fillRect(620, 72, 252, 144);
+  ctx.strokeStyle = '#4aa3ff';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(620, 72, 252, 144);
+  ctx.fillStyle = '#29395e';
+  ctx.fillRect(620, 72, 252, 20);
+  ctx.fillStyle = '#86f2c6';
+  ctx.fillRect(644, 110, 88 + pulse, 6);
+  ctx.fillStyle = '#e69573';
+  ctx.fillRect(658, 130, 118, 6);
+  ctx.fillStyle = '#8bc6ff';
+  ctx.fillRect(658, 150, 80, 6);
+  ctx.fillStyle = '#d7c4ff';
+  ctx.fillRect(676, 170, 142, 6);
+  ctx.fillStyle = '#63d297';
+  ctx.fillRect(676, 190, 96, 6);
+}
+
+function drawIsoStageBoard(ctx: CanvasRenderingContext2D, state: WarnyinState) {
+  const title = state.activeTopic?.slug ?? state.transcript.latestCommand ?? 'standby';
+  ctx.fillStyle = '#111a3f';
+  ctx.fillRect(70, 82, 250, 74);
+  ctx.strokeStyle = '#c28a2c';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(70, 82, 250, 74);
+  ctx.fillStyle = '#fff8eb';
+  ctx.font = 'bold 16px ui-monospace, SFMono-Regular, Menlo, monospace';
+  fitText(ctx, title, 88, 112, 212);
+  ctx.fillStyle = '#8bc6ff';
+  ctx.font = '12px ui-monospace, SFMono-Regular, Menlo, monospace';
+  fitText(ctx, state.transcript.latestCommand ?? 'no command yet', 88, 136, 212);
+}
+
+function drawIsoWorkflowActivity(ctx: CanvasRenderingContext2D, state: WarnyinState, frame: number) {
+  const stage = state.transcript.currentStage ?? state.activeTopic?.activeStage;
+  if (!stage || stage === 'init' || stage === 'codemap' || stage === 'skill' || stage === 'explore' || stage === 'next') {
+    return;
+  }
+  const label = stage === 'design'
+    ? 'review panel'
+    : stage === 'build'
+      ? 'build waves'
+      : stage === 'verify'
+        ? 'verify loop'
+        : 'ship ready';
+  drawActivityBadge(ctx, 90, 176, label, stage === 'verify' ? '#b65b4c' : '#3e4f7d');
+  if (stage === 'build') {
+    drawWavePulse(ctx, 255, 190, frame);
+  }
+}
+
+function drawIsoPolygon(ctx: CanvasRenderingContext2D, points: Array<{ x: number; y: number }>) {
+  ctx.beginPath();
+  points.forEach((point, index) => {
+    if (index === 0) {
+      ctx.moveTo(point.x, point.y);
+    } else {
+      ctx.lineTo(point.x, point.y);
+    }
+  });
+  ctx.closePath();
+  ctx.fill();
 }
 
 function drawFurniture(ctx: CanvasRenderingContext2D, item: FurnitureItem) {
@@ -899,10 +1185,11 @@ function drawAgent(
   seat: OfficeSeat,
   palette: Map<string, RolePaletteEntry>,
   frame: number,
+  moving = false,
 ) {
   const x = seat.x;
   const y = seat.y;
-  const bob = agent.status === 'running' || agent.status === 'thinking' ? Math.round(Math.sin(frame / 8) * 2) : 0;
+  const bob = agent.status === 'running' || agent.status === 'thinking' || moving ? Math.round(Math.sin(frame / 8) * 2) : 0;
   const rolePalette = palette.get(agent.role) ?? palette.get(seat.role ?? '') ?? palette.get('Developer');
   const accent = agent.status === 'offline'
     ? statusColors.offline
@@ -954,6 +1241,7 @@ function drawAgent(
   ctx.fillStyle = agent.kind === 'main' ? '#c28a2c' : '#fff8eb';
   ctx.fillRect(x - 7, yy + 23, 14, 4);
   drawAccessory(ctx, x, yy, rolePalette?.accessory ?? (agent.kind === 'main' ? 'badge' : 'none'), rolePalette?.accent ?? '#c28a2c');
+  drawWalkingFeet(ctx, x, yy, moving, frame, outline);
 
   if (agent.status === 'blocked') {
     ctx.fillStyle = '#b65b4c';
@@ -1006,6 +1294,13 @@ function drawAccessory(ctx: CanvasRenderingContext2D, x: number, y: number, acce
   }
 }
 
+function drawWalkingFeet(ctx: CanvasRenderingContext2D, x: number, y: number, moving: boolean, frame: number, outline: string) {
+  const stride = moving ? Math.round(Math.sin(frame / 4) * 4) : 0;
+  ctx.fillStyle = outline;
+  ctx.fillRect(x - 14 - stride, y + 44, 10, 6);
+  ctx.fillRect(x + 4 + stride, y + 44, 10, 6);
+}
+
 function placeAgents(agents: AgentSnapshot[], layout: OfficeLayout): Array<{ agent: AgentSnapshot; seat: OfficeSeat }> {
   const mainSeat = layout.seats.find((seat) => seat.id === 'main') ?? layout.seats[0];
   const otherSeats = layout.seats.filter((seat) => seat.id !== 'main');
@@ -1013,6 +1308,90 @@ function placeAgents(agents: AgentSnapshot[], layout: OfficeLayout): Array<{ age
     agent,
     seat: agent.kind === 'main' ? mainSeat : otherSeats[Math.max(0, index - 1)] ?? otherSeats[0] ?? mainSeat,
   }));
+}
+
+function toScreenPlacements(
+  placements: Array<{ agent: AgentSnapshot; seat: OfficeSeat }>,
+  player: PlayerPosition,
+): Array<{ agent: AgentSnapshot; seat: OfficeSeat }> {
+  return placements.map(({ agent, seat }) => {
+    const worldPoint = agent.kind === 'main'
+      ? { x: player.x, y: player.y }
+      : { x: seat.x, y: seat.y };
+    const screenPoint = projectWorldPoint(worldPoint.x, worldPoint.y);
+    return {
+      agent,
+      seat: {
+        ...seat,
+        x: screenPoint.x,
+        y: screenPoint.y,
+      },
+    };
+  });
+}
+
+function createPlayerFromSeat(seat: OfficeSeat | undefined): PlayerPosition {
+  const x = clamp(seat?.x ?? 202, ISO_WORLD.minX, ISO_WORLD.maxX);
+  const y = clamp(seat?.y ?? 244, ISO_WORLD.minY, ISO_WORLD.maxY);
+  return {
+    x,
+    y,
+    targetX: x,
+    targetY: y,
+    facing: 'down',
+    moving: false,
+  };
+}
+
+function movePlayerToScreenPoint(player: PlayerPosition, point: { x: number; y: number }) {
+  const worldPoint = unprojectScreenPoint(point.x, point.y);
+  setPlayerTarget(player, worldPoint.x, worldPoint.y);
+}
+
+function setPlayerTarget(player: PlayerPosition, x: number, y: number) {
+  const targetX = clamp(x, ISO_WORLD.minX + 18, ISO_WORLD.maxX - 18);
+  const targetY = clamp(y, ISO_WORLD.minY + 18, ISO_WORLD.maxY - 18);
+  const dx = targetX - player.x;
+  const dy = targetY - player.y;
+  player.facing = Math.abs(dx) > Math.abs(dy)
+    ? dx >= 0 ? 'right' : 'left'
+    : dy >= 0 ? 'down' : 'up';
+  player.targetX = targetX;
+  player.targetY = targetY;
+  player.moving = Math.hypot(dx, dy) > 2;
+}
+
+function updatePlayerPosition(player: PlayerPosition) {
+  const dx = player.targetX - player.x;
+  const dy = player.targetY - player.y;
+  const distance = Math.hypot(dx, dy);
+  if (distance <= WALK_STEP) {
+    player.x = player.targetX;
+    player.y = player.targetY;
+    player.moving = false;
+    return;
+  }
+  player.x += (dx / distance) * WALK_STEP;
+  player.y += (dy / distance) * WALK_STEP;
+  player.moving = true;
+}
+
+function projectWorldPoint(x: number, y: number): { x: number; y: number } {
+  const worldX = x - ISO_CENTER.x;
+  const worldY = y - ISO_CENTER.y;
+  return {
+    x: ISO_ORIGIN.x + (worldX - worldY) * ISO_SCALE_X,
+    y: ISO_ORIGIN.y + (worldX + worldY) * ISO_SCALE_Y,
+  };
+}
+
+function unprojectScreenPoint(x: number, y: number): { x: number; y: number } {
+  const a = (x - ISO_ORIGIN.x) / ISO_SCALE_X;
+  const b = (y - ISO_ORIGIN.y) / ISO_SCALE_Y;
+  return {
+    x: ISO_CENTER.x + (a + b) / 2,
+    y: ISO_CENTER.y + (b - a) / 2,
+  };
 }
 
 function pointerToLogicalPoint(event: React.PointerEvent<HTMLCanvasElement>): { x: number; y: number } {
@@ -1065,6 +1444,17 @@ function toggleSelection(values: string[], value: string): string[] {
   return values.includes(value)
     ? values.filter((item) => item !== value)
     : [...values, value];
+}
+
+function shouldIgnoreMovementKey(event: KeyboardEvent): boolean {
+  if (event.ctrlKey || event.metaKey || event.altKey) {
+    return true;
+  }
+  const target = event.target as HTMLElement | null;
+  if (!target) {
+    return false;
+  }
+  return target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable;
 }
 
 function fitText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number) {

@@ -9,6 +9,12 @@ docs/
 tests/
 test-results/
 playwright-report/
+.claude/
+warnyin/
+AGENTS.md
+CLAUDE.md
+bash.exe.stackdump
+theme.jpg
 playwright.config.ts
 .gitignore
 .vscode/

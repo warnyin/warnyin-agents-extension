@@ -5,4 +5,15 @@ webview-ui/dist/
 .vscode-test/
 test-results/
 playwright-report/
+.claude/
+warnyin/
+docs/codemap/
+docs/infra.md
+docs/project.md
+docs/rule.md
+docs/troubleshooting.md
+AGENTS.md
+CLAUDE.md
+bash.exe.stackdump
+theme.jpg
 npm-debug.log*

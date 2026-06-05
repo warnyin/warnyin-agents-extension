@@ -24,7 +24,8 @@ Pixel command center for the Warnyin Standard Workflow and Claude Code agents.
 - Detects stage slugs from `warnyin/stages/*`.
 - Detects archived topics from `warnyin/stages/achieved/*`.
 - Scans workspace-local Claude Code transcripts in `~/.claude/projects/*`.
-- Renders a Warnyin Paper Office pixel canvas with the main controller and sub-agents.
+- Renders a dark isometric Warnyin pixel office with the main controller and sub-agents.
+- Lets the main controller walk with click-to-move plus WASD/arrow keys.
 - Uses manifest-backed pixel furniture assets with procedural fallbacks.
 - Persists office seat and furniture layout per workspace with edit, save, reset, import, and export actions.
 - Supports layout import, built-in presets, user-created custom presets, and per-role character palette/body/hair/accessory persistence.
@@ -35,7 +36,7 @@ Pixel command center for the Warnyin Standard Workflow and Claude Code agents.
 - Keeps command history and supports raw `/warnyin:*` command replay.
 - Supports saved prompts with import/export.
 - Validates command form inputs before sending slash commands to the terminal.
-- Lets the main pixel agent focus the terminal and sub-agents open read-only details.
+- Lets clicking the main pixel agent focus the terminal and sub-agents open read-only details.
 - Offers optional webview sound cues through `warnyinAgents.soundCues`.
 - Runs unit tests and Playwright webview smoke tests for nonblank canvas rendering.
 

@@ -227,7 +227,7 @@ h2 {
   padding: 6px 8px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: rgba(255, 248, 235, 0.82);
+  background: linear-gradient(135deg, rgba(255, 248, 235, 0.9), rgba(218, 232, 225, 0.82));
 }
 
 .layoutName {
@@ -269,10 +269,10 @@ h2 {
   aspect-ratio: 16 / 9;
   min-height: 360px;
   overflow: hidden;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(85, 111, 177, 0.45);
   border-radius: 8px;
-  background: var(--paper-deep);
-  box-shadow: 0 10px 26px var(--shadow);
+  background: #07112e;
+  box-shadow: 0 18px 42px rgba(8, 18, 46, 0.34);
 }
 
 .canvasFrame.editing {
@@ -286,6 +286,7 @@ h2 {
   display: block;
   image-rendering: pixelated;
   touch-action: none;
+  cursor: crosshair;
 }
 
 .canvasFrame.editing canvas {

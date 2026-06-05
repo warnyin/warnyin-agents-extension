@@ -14,4 +14,5 @@
 - Adds furniture placement/deletion, undo/redo, keyboard layout shortcuts, import preview, speech bubbles, command previews, saved prompts, validation hints, and archived topic visibility.
 - Adds richer workflow metrics and visualization for dependency edges, build waves, review panel, verify loop, fix counts, and ship archive targets.
 - Adds user-created custom layout presets, multi-select/bulk layout movement, and optional webview sound cues.
+- Adds a dark isometric pixel office presentation plus click-to-move and WASD/arrow-key movement for the main controller.
 - Adds domain unit tests, Playwright webview canvas smoke tests, marketplace metadata, and VS Code packaging script.

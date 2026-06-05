@@ -25,7 +25,7 @@ This roadmap tracks the path from the Warnyin Agents MVP to a full pixel office 
   - `/warnyin:ship <slug>`
 - Stage detection from `warnyin/stages/<slug>/`.
 - Claude Code transcript scan for workspace-local `.jsonl` sessions.
-- Pixel office canvas with one controllable main agent and rendered sub-agents/role bench.
+- Dark isometric pixel office canvas with one controllable, walkable main agent and rendered sub-agents/role bench.
 - Workspace-scoped persistent seat layout with edit, save, reset, and export actions.
 - Layout import with preview, built-in and user-created named presets, furniture placement/deletion, multi-select movement, undo/redo, keyboard shortcuts, and per-role character palette/body/hair/accessory persistence.
 - Workflow intelligence summary from local Warnyin stage artifacts, including dependency graph edges, verify gates, fix counts, and ship archive target.
