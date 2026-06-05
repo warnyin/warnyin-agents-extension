@@ -4,6 +4,7 @@ declare global {
   interface Window {
     acquireVsCodeApi?: () => VsCodeApi;
     __WARNYIN_LOGO_URI__?: string;
+    __WARNYIN_ASSET_BASE_URI__?: string;
   }
 }
 
@@ -21,3 +22,4 @@ const fallbackApi: VsCodeApi = {
 
 export const vscode = window.acquireVsCodeApi ? window.acquireVsCodeApi() : fallbackApi;
 export const logoUri = window.__WARNYIN_LOGO_URI__;
+export const assetBaseUri = window.__WARNYIN_ASSET_BASE_URI__;

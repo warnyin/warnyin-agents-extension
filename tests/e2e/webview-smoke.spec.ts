@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator } from '@playwright/test';
 
 test('webview renders command shell and nonblank pixel office canvas', async ({ page }) => {
   await page.goto('/');
@@ -12,7 +12,37 @@ test('webview renders command shell and nonblank pixel office canvas', async ({ 
   const canvas = page.locator('canvas');
   await expect(canvas).toBeVisible();
 
-  const canvasStats = await canvas.evaluate((element) => {
+  await expect.poll(async () => {
+    const stats = await readCanvasStats(canvas);
+    return stats.coloredPixels;
+  }).toBeGreaterThan(10_000);
+
+  const canvasStats = await readCanvasStats(canvas);
+  expect(canvasStats.uniqueColors).toBeGreaterThan(6);
+
+  await canvas.click({ position: { x: 330, y: 265 } });
+  await page.waitForTimeout(1_000);
+  const movedChecksum = await canvas.evaluate((element) => {
+    const canvasElement = element as HTMLCanvasElement;
+    const context = canvasElement.getContext('2d');
+    if (!context || canvasElement.width === 0 || canvasElement.height === 0) {
+      return 0;
+    }
+    const data = context.getImageData(0, 0, canvasElement.width, canvasElement.height).data;
+    let checksum = 0;
+    for (let index = 0; index < data.length; index += 256) {
+      checksum = (checksum + data[index] * 3 + data[index + 1] * 5 + data[index + 2] * 7 + data[index + 3]) % 1_000_000_007;
+    }
+    return checksum;
+  });
+  expect(movedChecksum).not.toBe(canvasStats.checksum);
+
+  await expect(page.locator('.pixelAgentsHeader')).toContainText('Warnyin Pixel Agents');
+  await expect(page.locator('.pixelAgentsFooter')).toContainText('agents');
+});
+
+async function readCanvasStats(canvas: Locator) {
+  return canvas.evaluate((element) => {
     const canvasElement = element as HTMLCanvasElement;
     const context = canvasElement.getContext('2d');
     if (!context || canvasElement.width === 0 || canvasElement.height === 0) {
@@ -37,27 +67,4 @@ test('webview renders command shell and nonblank pixel office canvas', async ({ 
     }
     return { coloredPixels, uniqueColors: colors.size, checksum };
   });
-
-  expect(canvasStats.coloredPixels).toBeGreaterThan(10_000);
-  expect(canvasStats.uniqueColors).toBeGreaterThan(6);
-
-  await canvas.click({ position: { x: 227, y: 309 } });
-  await page.waitForTimeout(1_000);
-  const movedChecksum = await canvas.evaluate((element) => {
-    const canvasElement = element as HTMLCanvasElement;
-    const context = canvasElement.getContext('2d');
-    if (!context) {
-      return 0;
-    }
-    const data = context.getImageData(0, 0, canvasElement.width, canvasElement.height).data;
-    let checksum = 0;
-    for (let index = 0; index < data.length; index += 256) {
-      checksum = (checksum + data[index] * 3 + data[index + 1] * 5 + data[index + 2] * 7 + data[index + 3]) % 1_000_000_007;
-    }
-    return checksum;
-  });
-  expect(movedChecksum).not.toBe(canvasStats.checksum);
-
-  await expect(page.locator('.pixelAgentsHeader')).toContainText('Warnyin Pixel Agents');
-  await expect(page.locator('.pixelAgentsFooter')).toContainText('agents');
-});
+}

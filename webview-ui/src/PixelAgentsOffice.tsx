@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import type { AgentSnapshot, WarnyinState } from './types';
-import { vscode } from './vscode';
+import { assetBaseUri, vscode } from './vscode';
 
 const TILE = 16;
 const CHAR_W = 16;
 const CHAR_H = 32;
 const CHAR_FRAMES = 4;
-const ROOM_ZOOM = 3;
+const ROOM_ZOOM = 2.35;
 const VIEW_TOP_ROW = 8;
 
 type Direction = 'down' | 'up' | 'right' | 'left';
@@ -117,7 +117,7 @@ export default function PixelAgentsOffice({ state }: { state: WarnyinState }) {
 
   useEffect(() => {
     let cancelled = false;
-    fetch('assets/default-layout-1.json')
+    fetch(toAssetUrl('assets/default-layout-1.json'))
       .then((response) => response.json())
       .then((data: PixelLayout) => {
         if (!cancelled) {
@@ -315,7 +315,7 @@ function render(
     });
   }
   renderables.sort((a, b) => a.y - b.y).forEach((item) => item.draw());
-  drawTerminalScreen(ctx, state, layout.cols * TILE - 118, 18);
+  drawTerminalScreen(ctx, state, layout.cols * TILE - 110, 154);
   ctx.restore();
 }
 
@@ -645,8 +645,8 @@ function roomViewport(canvas: HTMLCanvasElement, layout: PixelLayout) {
     1,
     Math.min(
       ROOM_ZOOM,
-      width / (layout.cols * TILE * 1.08),
-      height / (visibleRows * TILE * 1.12),
+      width / (layout.cols * TILE * 1.26),
+      height / (visibleRows * TILE * 1.28),
     ),
   );
   const roomW = layout.cols * TILE * zoom;
@@ -654,7 +654,7 @@ function roomViewport(canvas: HTMLCanvasElement, layout: PixelLayout) {
   return {
     zoom,
     offsetX: Math.floor((width - roomW) / 2),
-    offsetY: Math.floor((height - roomH) / 2) + 6,
+    offsetY: Math.floor((height - roomH) / 2) + 18,
   };
 }
 
@@ -710,8 +710,16 @@ function loadImage(src: string) {
     const image = new Image();
     image.onload = () => resolve(image);
     image.onerror = reject;
-    image.src = src;
+    image.src = toAssetUrl(src);
   });
+}
+
+function toAssetUrl(src: string) {
+  if (!assetBaseUri) {
+    return src;
+  }
+  const relativePath = src.replace(/^assets\//, '');
+  return `${assetBaseUri.replace(/\/$/, '')}/${relativePath}`;
 }
 
 function createFallbackLayout(): PixelLayout {

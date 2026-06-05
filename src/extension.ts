@@ -1203,6 +1203,9 @@ class WarnyinAgentsViewProvider implements vscode.WebviewViewProvider, vscode.Di
       vscode.Uri.joinPath(this.context.extensionUri, 'webview-ui', 'dist', 'assets', 'index.css'),
     );
     const logoUri = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'logo.png'));
+    const assetBaseUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this.context.extensionUri, 'webview-ui', 'dist', 'assets'),
+    );
 
     return `<!doctype html>
 <html lang="en">
@@ -1215,7 +1218,10 @@ class WarnyinAgentsViewProvider implements vscode.WebviewViewProvider, vscode.Di
   </head>
   <body>
     <div id="root"></div>
-    <script nonce="${nonce}">window.__WARNYIN_LOGO_URI__ = ${JSON.stringify(logoUri.toString())};</script>
+    <script nonce="${nonce}">
+      window.__WARNYIN_LOGO_URI__ = ${JSON.stringify(logoUri.toString())};
+      window.__WARNYIN_ASSET_BASE_URI__ = ${JSON.stringify(assetBaseUri.toString())};
+    </script>
     <script nonce="${nonce}" type="module" src="${scriptUri}"></script>
   </body>
 </html>`;
