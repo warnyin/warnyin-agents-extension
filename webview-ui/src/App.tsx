@@ -230,14 +230,13 @@ function TerminalPanel({ state }: { state: WarnyinState }) {
     : 'transcript off';
 
   return (
-    <section className="panelSection terminalSection">
-      <div className="sectionTitle">
-        <Terminal size={16} />
-        <h2>Terminal</h2>
-        <span className={`terminalStatus ${state.terminal.isOpen ? 'open' : 'closed'}`}>
-          {state.terminal.isOpen ? 'Open' : 'Ready'}
-        </span>
-      </div>
+    <CollapsiblePanel
+      className="terminalSection"
+      icon={<Terminal size={16} />}
+      title="Terminal"
+      summary={state.terminal.isOpen ? 'Open' : 'Ready'}
+      defaultOpen={false}
+    >
       <div className="terminalScreen" role="region" aria-label="Warnyin terminal">
         <div className="terminalChrome">
           <span />
@@ -259,7 +258,7 @@ function TerminalPanel({ state }: { state: WarnyinState }) {
         <Play size={16} />
         {state.terminal.isOpen ? 'Focus' : 'Start'}
       </button>
-    </section>
+    </CollapsiblePanel>
   );
 }
 

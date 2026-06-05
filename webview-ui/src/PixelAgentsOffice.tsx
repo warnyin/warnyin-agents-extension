@@ -641,12 +641,15 @@ function roomViewport(canvas: HTMLCanvasElement, layout: PixelLayout) {
   const width = canvas.width;
   const height = canvas.height;
   const visibleRows = layout.rows - VIEW_TOP_ROW;
+  const narrow = (canvas.clientWidth || width) < 640;
+  const widthPadding = narrow ? 0.9 : 1.26;
+  const heightPadding = narrow ? 1.08 : 1.28;
   const zoom = Math.max(
     1,
     Math.min(
       ROOM_ZOOM,
-      width / (layout.cols * TILE * 1.26),
-      height / (visibleRows * TILE * 1.28),
+      width / (layout.cols * TILE * widthPadding),
+      height / (visibleRows * TILE * heightPadding),
     ),
   );
   const roomW = layout.cols * TILE * zoom;
@@ -654,7 +657,7 @@ function roomViewport(canvas: HTMLCanvasElement, layout: PixelLayout) {
   return {
     zoom,
     offsetX: Math.floor((width - roomW) / 2),
-    offsetY: Math.floor((height - roomH) / 2) + 18,
+    offsetY: Math.floor((height - roomH) / 2) + (narrow ? 8 : 18),
   };
 }
 

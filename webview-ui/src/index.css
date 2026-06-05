@@ -524,15 +524,12 @@ h2 {
 }
 
 .terminalSection {
-  display: grid;
-  gap: 8px;
   border-color: rgba(132, 159, 214, 0.32);
   background: linear-gradient(180deg, rgba(17, 26, 63, 0.96), rgba(7, 17, 46, 0.96));
   box-shadow: 0 14px 28px rgba(2, 8, 28, 0.32);
 }
 
 .terminalSection .sectionTitle {
-  margin-bottom: 0;
   color: var(--paper-soft);
 }
 
@@ -540,21 +537,8 @@ h2 {
   color: var(--paper-soft);
 }
 
-.terminalStatus {
-  margin-left: auto;
-  min-width: 54px;
-  padding: 3px 7px;
-  border: 1px solid rgba(132, 159, 214, 0.3);
-  border-radius: 8px;
+.terminalSection .collapsibleTitle span {
   color: rgba(255, 248, 235, 0.74);
-  font-size: 11px;
-  font-weight: 800;
-  text-align: center;
-}
-
-.terminalStatus.open {
-  border-color: rgba(88, 214, 141, 0.48);
-  color: #86f2c6;
 }
 
 .terminalScreen {
@@ -627,6 +611,7 @@ h2 {
 
 .terminalButton {
   width: 100%;
+  margin-top: 8px;
   background: #2d6f62;
 }
 
@@ -647,7 +632,8 @@ h2 {
 }
 
 .commandSection.collapsed .sectionTitle,
-.rosterSection.collapsed .sectionTitle {
+.rosterSection.collapsed .sectionTitle,
+.terminalSection.collapsed .sectionTitle {
   border-bottom: 0;
 }
 
@@ -1159,9 +1145,76 @@ textarea:focus {
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 760px) {
   .appShell {
     padding: 10px;
+  }
+
+  .topBar {
+    margin-bottom: 8px;
+  }
+
+  h1 {
+    font-size: 20px;
+  }
+
+  .brandLockup p {
+    font-size: 12px;
+  }
+
+  .logoMark {
+    width: 40px;
+    height: 40px;
+  }
+
+  .stageStrip {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 5px;
+    overflow: visible;
+  }
+
+  .stageNode {
+    min-height: 34px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 5px 3px;
+  }
+
+  .stageNode span {
+    width: 100%;
+    text-align: center;
+    font-size: 10px;
+    line-height: 1.1;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
+
+  .stageNode small {
+    min-width: 18px;
+    height: 18px;
+    font-size: 10px;
+  }
+
+  .pixelAgentsShell {
+    grid-template-rows: auto minmax(400px, 1fr) auto;
+  }
+
+  .pixelAgentsCanvasFrame,
+  .pixelAgentsCanvasFrame canvas {
+    min-height: 400px;
+  }
+
+  .sceneStatusGrid {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 520px) {
+  .appShell {
+    padding: 8px;
   }
 
   .topBar {
@@ -1171,12 +1224,11 @@ textarea:focus {
 
   .topActions {
     width: 100%;
-    justify-content: space-between;
+    justify-content: flex-end;
   }
 
-  .stageStrip {
-    grid-template-columns: repeat(5, minmax(72px, 1fr));
-    overflow-x: auto;
+  .topActions .statusPill {
+    margin-right: auto;
   }
 
   .quickGrid {
@@ -1184,12 +1236,28 @@ textarea:focus {
   }
 
   .pixelAgentsShell {
-    grid-template-rows: auto minmax(340px, 1fr) auto;
+    grid-template-rows: auto minmax(360px, 1fr) auto;
   }
 
   .pixelAgentsCanvasFrame,
   .pixelAgentsCanvasFrame canvas {
-    min-height: 340px;
+    min-height: 360px;
+  }
+
+  .pixelAgentsHeader,
+  .pixelAgentsFooter {
+    min-height: 34px;
+    padding: 0 8px;
+  }
+
+  .pixelAgentsHeader strong,
+  .pixelAgentsFooter code {
+    font-size: 12px;
+  }
+
+  .pixelAgentsHeader span,
+  .pixelAgentsFooter span {
+    font-size: 11px;
   }
 
   .layoutToolbar {
