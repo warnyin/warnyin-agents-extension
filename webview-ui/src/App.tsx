@@ -199,14 +199,16 @@ export default function App() {
         <div className="officePane">
           <StageStrip state={state} />
           <PixelAgentsOffice state={state} />
+          <div className="sceneStatusGrid">
+            <TerminalPanel state={state} />
+            <AgentRoster state={state} />
+          </div>
         </div>
         <aside className="controlPane">
           <CommandCenter state={state} />
-          <TerminalPanel state={state} />
           {state.installState === 'installed' ? <WorkflowPanel state={state} /> : null}
           {state.installState === 'installed' ? <PalettePanel state={state} /> : null}
           {state.installState === 'installed' ? <HistoryPanel state={state} /> : null}
-          <AgentRoster state={state} />
         </aside>
       </section>
       {toast ? <div className={`toast ${toast.level}`}>{toast.message}</div> : null}
@@ -343,8 +345,8 @@ function Header({ state }: { state: WarnyinState }) {
       <div className="brandLockup">
         {state.logoUri ? <img src={state.logoUri} alt="" className="logoMark" /> : null}
         <div>
-          <h1>Warnyin Agents</h1>
-          <p>{state.workspaceName ?? 'Workspace required'}</p>
+          <h1>Warnyin Pixel Agents</h1>
+          <p>{state.workspaceName ?? 'Open a workspace to bring the office online'}</p>
         </div>
       </div>
       <div className="topActions">

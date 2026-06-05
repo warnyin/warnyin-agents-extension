@@ -51,7 +51,7 @@ button:disabled {
 
 .appShell {
   min-height: 100vh;
-  padding: 16px;
+  padding: 14px;
   background:
     radial-gradient(circle at 18% 10%, rgba(63, 55, 163, 0.34), transparent 28%),
     linear-gradient(90deg, rgba(151, 184, 230, 0.045) 1px, transparent 1px),
@@ -65,9 +65,9 @@ button:disabled {
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  max-width: 1280px;
-  margin: 0 auto 14px;
-  padding: 10px 0;
+  max-width: 1480px;
+  margin: 0 auto 12px;
+  padding: 8px 2px;
 }
 
 .brandLockup {
@@ -78,8 +78,8 @@ button:disabled {
 }
 
 .logoMark {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 8px;
   object-fit: cover;
   box-shadow: 0 4px 14px var(--shadow);
@@ -93,7 +93,7 @@ p {
 
 h1 {
   color: var(--paper-soft);
-  font-size: 22px;
+  font-size: 24px;
   line-height: 1.1;
   letter-spacing: 0;
 }
@@ -148,9 +148,9 @@ h2 {
 
 .workSurface {
   display: grid;
-  grid-template-columns: minmax(420px, 1.35fr) minmax(330px, 0.65fr);
-  gap: 16px;
-  max-width: 1280px;
+  grid-template-columns: minmax(620px, 1fr) minmax(320px, 380px);
+  gap: 14px;
+  max-width: 1480px;
   margin: 0 auto;
   align-items: start;
 }
@@ -162,23 +162,27 @@ h2 {
 
 .controlPane {
   display: grid;
-  gap: 12px;
+  gap: 10px;
+  max-height: calc(100vh - 92px);
+  overflow: auto;
+  padding-right: 2px;
+  scrollbar-width: thin;
 }
 
 .stageStrip {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 8px;
-  margin-bottom: 10px;
+  gap: 7px;
+  margin-bottom: 8px;
 }
 
 .stageNode {
-  min-height: 48px;
+  min-height: 40px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 9px 10px;
+  padding: 7px 9px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: rgba(255, 248, 235, 0.9);
@@ -189,14 +193,14 @@ h2 {
 .stageNode span {
   min-width: 0;
   overflow-wrap: anywhere;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
 }
 
 .stageNode small {
   flex: 0 0 auto;
-  min-width: 22px;
-  height: 22px;
+  min-width: 20px;
+  height: 20px;
   display: inline-grid;
   place-items: center;
   border-radius: 999px;
@@ -222,19 +226,37 @@ h2 {
   gap: 8px;
 }
 
+.sceneStatusGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.95fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.sceneStatusGrid .panelSection {
+  min-width: 0;
+}
+
+.sceneStatusGrid .rosterSection .agentList {
+  max-height: 160px;
+  overflow: auto;
+  padding-right: 2px;
+  scrollbar-width: thin;
+}
+
 .pixelAgentsShell {
   display: grid;
-  grid-template-rows: auto minmax(420px, 1fr) auto;
+  grid-template-rows: auto minmax(560px, 1fr) auto;
   overflow: hidden;
   border: 1px solid rgba(85, 111, 177, 0.45);
   border-radius: 8px;
   background: #07112e;
-  box-shadow: 0 18px 42px rgba(2, 8, 28, 0.58), 0 0 0 1px rgba(151, 184, 230, 0.12);
+  box-shadow: 0 22px 56px rgba(2, 8, 28, 0.62), 0 0 0 1px rgba(151, 184, 230, 0.12);
 }
 
 .pixelAgentsHeader,
 .pixelAgentsFooter {
-  min-height: 42px;
+  min-height: 38px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -263,13 +285,13 @@ h2 {
 }
 
 .pixelAgentsCanvasFrame {
-  min-height: 420px;
+  min-height: 560px;
 }
 
 .pixelAgentsCanvasFrame canvas {
   width: 100%;
   height: 100%;
-  min-height: 420px;
+  min-height: 560px;
   display: block;
   image-rendering: pixelated;
   touch-action: none;
@@ -434,7 +456,7 @@ h2 {
   border-radius: 8px;
   background: rgba(255, 248, 235, 0.86);
   box-shadow: 0 8px 18px rgba(75, 36, 20, 0.08);
-  padding: 12px;
+  padding: 10px;
 }
 
 .panelSection .mutedText {
@@ -445,13 +467,13 @@ h2 {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   color: var(--cocoa);
 }
 
 .terminalSection {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   border-color: rgba(132, 159, 214, 0.32);
   background: linear-gradient(180deg, rgba(17, 26, 63, 0.96), rgba(7, 17, 46, 0.96));
   box-shadow: 0 14px 28px rgba(2, 8, 28, 0.32);
@@ -484,7 +506,7 @@ h2 {
 }
 
 .terminalScreen {
-  min-height: 150px;
+  min-height: 112px;
   display: grid;
   align-content: start;
   gap: 6px;
@@ -556,6 +578,22 @@ h2 {
   background: #2d6f62;
 }
 
+.commandSection {
+  background:
+    linear-gradient(180deg, rgba(255, 248, 235, 0.95), rgba(234, 214, 184, 0.88));
+}
+
+.commandSection .sectionTitle {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: -10px -10px 8px;
+  padding: 10px;
+  border-bottom: 1px solid rgba(210, 180, 140, 0.58);
+  background: rgba(255, 248, 235, 0.96);
+  backdrop-filter: blur(6px);
+}
+
 .lockedSection {
   display: grid;
   gap: 12px;
@@ -563,9 +601,9 @@ h2 {
 
 .quickGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-  margin-bottom: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin-bottom: 8px;
 }
 
 .commandTile,
@@ -588,11 +626,11 @@ h2 {
 }
 
 .commandTile {
-  min-height: 54px;
+  min-height: 42px;
   display: grid;
   place-items: center;
   gap: 3px;
-  padding: 7px;
+  padding: 6px;
   color: var(--cocoa);
   font-size: 12px;
   font-weight: 800;
@@ -640,13 +678,13 @@ h2 {
 
 .formStack {
   display: grid;
-  gap: 8px;
+  gap: 7px;
 }
 
 .commandPreview {
   display: block;
-  min-height: 28px;
-  padding: 6px 8px;
+  min-height: 24px;
+  padding: 5px 7px;
   border: 1px solid rgba(210, 180, 140, 0.55);
   border-radius: 8px;
   background: rgba(244, 234, 217, 0.46);
@@ -678,18 +716,18 @@ h2 {
 
 .commandRow {
   display: grid;
-  grid-template-columns: 104px minmax(0, 1fr) 34px;
-  gap: 8px;
+  grid-template-columns: 86px minmax(0, 1fr) 32px;
+  gap: 7px;
   align-items: center;
-  min-height: 44px;
-  padding: 8px;
+  min-height: 40px;
+  padding: 7px;
   border: 1px solid rgba(210, 180, 140, 0.7);
   border-radius: 8px;
   background: rgba(244, 234, 217, 0.58);
 }
 
 .commandRow.tall {
-  grid-template-columns: 104px minmax(84px, 0.35fr) minmax(0, 1fr) 34px;
+  grid-template-columns: 86px minmax(76px, 0.34fr) minmax(0, 1fr) 32px;
   align-items: stretch;
 }
 
@@ -722,8 +760,8 @@ textarea {
 
 input,
 select {
-  height: 34px;
-  padding: 0 9px;
+  height: 32px;
+  padding: 0 8px;
 }
 
 input[type="color"] {
@@ -747,13 +785,13 @@ textarea:focus {
 
 .agentList {
   display: grid;
-  gap: 7px;
+  gap: 6px;
 }
 
 .paletteGrid {
   display: grid;
   gap: 6px;
-  max-height: 220px;
+  max-height: 170px;
   overflow: auto;
   padding-right: 2px;
 }
@@ -847,11 +885,11 @@ textarea:focus {
 .metricGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 7px;
+  gap: 6px;
 }
 
 .metricItem {
-  min-height: 48px;
+  min-height: 42px;
   display: grid;
   align-content: center;
   gap: 3px;
@@ -947,8 +985,8 @@ textarea:focus {
   grid-template-columns: 12px minmax(92px, 0.42fr) minmax(0, 0.58fr);
   gap: 8px;
   align-items: center;
-  min-height: 42px;
-  padding: 7px 8px;
+  min-height: 38px;
+  padding: 6px 8px;
   border: 1px solid rgba(210, 180, 140, 0.66);
   border-radius: 8px;
   background: rgba(244, 234, 217, 0.48);
@@ -1041,8 +1079,26 @@ textarea:focus {
     grid-template-columns: 1fr;
   }
 
+  .controlPane {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .sceneStatusGrid {
+    grid-template-columns: 1fr;
+  }
+
   .canvasFrame {
     min-height: 310px;
+  }
+
+  .pixelAgentsShell {
+    grid-template-rows: auto minmax(430px, 1fr) auto;
+  }
+
+  .pixelAgentsCanvasFrame,
+  .pixelAgentsCanvasFrame canvas {
+    min-height: 430px;
   }
 }
 
@@ -1056,12 +1112,27 @@ textarea:focus {
     flex-direction: column;
   }
 
+  .topActions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
   .stageStrip {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(5, minmax(72px, 1fr));
+    overflow-x: auto;
   }
 
   .quickGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pixelAgentsShell {
+    grid-template-rows: auto minmax(340px, 1fr) auto;
+  }
+
+  .pixelAgentsCanvasFrame,
+  .pixelAgentsCanvasFrame canvas {
+    min-height: 340px;
   }
 
   .layoutToolbar {

@@ -3,7 +3,7 @@ import { expect, test, type Locator } from '@playwright/test';
 test('webview renders command shell and nonblank pixel office canvas', async ({ page }) => {
   await page.goto('/');
 
-  await expect(page.getByRole('heading', { name: 'Warnyin Agents' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Warnyin Pixel Agents' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'No Workspace' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Terminal' })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Warnyin terminal' })).toContainText('$ claude');
