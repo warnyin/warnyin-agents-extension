@@ -176,6 +176,7 @@ export interface WarnyinState {
   terminal: {
     name: string;
     isOpen: boolean;
+    launchCommand: string;
   };
   officeLayout: OfficeLayout;
   officePresets: OfficeLayoutPreset[];

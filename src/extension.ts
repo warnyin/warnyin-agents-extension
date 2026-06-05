@@ -233,6 +233,7 @@ interface WarnyinState {
   terminal: {
     name: string;
     isOpen: boolean;
+    launchCommand: string;
   };
   officeLayout: OfficeLayout;
   officePresets: OfficeLayoutPreset[];
@@ -970,6 +971,7 @@ class WarnyinAgentsViewProvider implements vscode.WebviewViewProvider, vscode.Di
         terminal: {
           name: WARNYIN_TERMINAL_NAME,
           isOpen: vscode.window.terminals.some((item) => item.name === WARNYIN_TERMINAL_NAME),
+          launchCommand: this.getLaunchCommand(),
         },
         officeLayout: defaultOfficeLayoutCore(),
         officePresets: officeLayoutPresetsCore(),
@@ -1020,6 +1022,7 @@ class WarnyinAgentsViewProvider implements vscode.WebviewViewProvider, vscode.Di
       terminal: {
         name: WARNYIN_TERMINAL_NAME,
         isOpen: vscode.window.terminals.some((item) => item.name === WARNYIN_TERMINAL_NAME),
+        launchCommand: this.getLaunchCommand(),
       },
       officeLayout: this.loadOfficeLayout(workspacePath),
       officePresets: this.loadOfficePresets(workspacePath),

@@ -5,6 +5,9 @@ test('webview renders command shell and nonblank pixel office canvas', async ({ 
 
   await expect(page.getByRole('heading', { name: 'Warnyin Agents' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'No Workspace' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Terminal' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Warnyin terminal' })).toContainText('$ claude');
+  await expect(page.getByRole('button', { name: 'Start', exact: true })).toBeDisabled();
 
   const canvas = page.locator('canvas');
   await expect(canvas).toBeVisible();

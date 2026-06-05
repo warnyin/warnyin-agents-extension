@@ -658,7 +658,7 @@ function drawOffice(
       if (selectedAgentId === agent.id) {
         drawSelectionRing(ctx, seat.x, seat.y);
       }
-      drawDesk(ctx, seat.x, seat.y + 36, agent.kind === 'main');
+      drawIsoDesk(ctx, seat.x, seat.y + 38, agent.kind === 'main', frame + index * 5);
       drawAgent(ctx, agent, seat, palette, frame + index * 7, agent.kind === 'main' && player.moving);
     });
     return;
@@ -734,41 +734,60 @@ function drawIsoRoom(ctx: CanvasRenderingContext2D, state: WarnyinState, frame: 
     ctx.stroke();
   }
 
-  ctx.fillStyle = '#d18b55';
-  drawIsoPolygon(ctx, [
-    projectWorldPoint(ISO_WORLD.minX, ISO_WORLD.minY),
-    projectWorldPoint(ISO_WORLD.maxX, ISO_WORLD.minY),
-    projectWorldPoint(ISO_WORLD.maxX, ISO_WORLD.maxY),
-    projectWorldPoint(ISO_WORLD.minX, ISO_WORLD.maxY),
-  ]);
-  ctx.fillStyle = '#bd7446';
-  drawIsoPolygon(ctx, [
-    projectWorldPoint(ISO_WORLD.minX, ISO_WORLD.maxY),
-    projectWorldPoint(ISO_WORLD.maxX, ISO_WORLD.maxY),
-    { x: projectWorldPoint(ISO_WORLD.maxX, ISO_WORLD.maxY).x, y: projectWorldPoint(ISO_WORLD.maxX, ISO_WORLD.maxY).y + 30 },
-    { x: projectWorldPoint(ISO_WORLD.minX, ISO_WORLD.maxY).x, y: projectWorldPoint(ISO_WORLD.minX, ISO_WORLD.maxY).y + 30 },
-  ]);
-
+  drawIsoWalls(ctx);
+  drawIsoFloor(ctx);
   drawIsoFloorTiles(ctx);
   drawIsoWall(ctx);
   drawIsoRug(ctx);
+  drawIsoSceneDecor(ctx, state, frame);
 
   ctx.fillStyle = '#ccebdc';
-  ctx.font = 'bold 28px ui-monospace, SFMono-Regular, Menlo, monospace';
+  ctx.font = 'bold 30px ui-monospace, SFMono-Regular, Menlo, monospace';
   ctx.shadowColor = 'rgba(75, 223, 191, 0.35)';
   ctx.shadowBlur = 12;
-  ctx.fillText('WARNYIN AGENTS', 318, 48);
+  ctx.fillText('WARNYIN AGENTS', 312, 46);
   ctx.shadowBlur = 0;
 
   ctx.fillStyle = state.installed ? '#58d68d' : '#f1b453';
   ctx.font = 'bold 12px ui-monospace, SFMono-Regular, Menlo, monospace';
   fitText(ctx, state.installed ? 'workflow online' : 'workflow locked', 392, 70, 190);
+  drawIsoFooter(ctx, state);
+}
 
-  drawFloatingCodeWindow(ctx, frame);
+function drawIsoFloor(ctx: CanvasRenderingContext2D) {
+  const top = projectWorldPoint(ISO_WORLD.minX, ISO_WORLD.minY);
+  const right = projectWorldPoint(ISO_WORLD.maxX, ISO_WORLD.minY);
+  const bottom = projectWorldPoint(ISO_WORLD.maxX, ISO_WORLD.maxY);
+  const left = projectWorldPoint(ISO_WORLD.minX, ISO_WORLD.maxY);
+  ctx.fillStyle = '#d18b55';
+  drawIsoPolygon(ctx, [top, right, bottom, left]);
+  ctx.fillStyle = '#bd7446';
+  drawIsoPolygon(ctx, [
+    left,
+    bottom,
+    { x: bottom.x, y: bottom.y + 30 },
+    { x: left.x, y: left.y + 30 },
+  ]);
+  ctx.fillStyle = '#9f613f';
+  drawIsoPolygon(ctx, [
+    bottom,
+    right,
+    { x: right.x, y: right.y + 22 },
+    { x: bottom.x, y: bottom.y + 30 },
+  ]);
+  ctx.strokeStyle = 'rgba(63, 33, 20, 0.36)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(top.x, top.y);
+  ctx.lineTo(right.x, right.y);
+  ctx.lineTo(bottom.x, bottom.y);
+  ctx.lineTo(left.x, left.y);
+  ctx.closePath();
+  ctx.stroke();
 }
 
 function drawIsoFloorTiles(ctx: CanvasRenderingContext2D) {
-  ctx.strokeStyle = 'rgba(92, 54, 36, 0.28)';
+  ctx.strokeStyle = 'rgba(92, 54, 36, 0.24)';
   ctx.lineWidth = 2;
   for (let x = ISO_WORLD.minX; x <= ISO_WORLD.maxX; x += 56) {
     const start = projectWorldPoint(x, ISO_WORLD.minY);
@@ -788,25 +807,57 @@ function drawIsoFloorTiles(ctx: CanvasRenderingContext2D) {
   }
 }
 
+function drawIsoWalls(ctx: CanvasRenderingContext2D) {
+  const top = projectWorldPoint(ISO_WORLD.minX, ISO_WORLD.minY);
+  const right = projectWorldPoint(ISO_WORLD.maxX, ISO_WORLD.minY);
+  const left = projectWorldPoint(ISO_WORLD.minX, ISO_WORLD.maxY);
+  const wallHeight = 124;
+  ctx.fillStyle = '#606b8b';
+  drawIsoPolygon(ctx, [
+    { x: top.x, y: top.y - wallHeight },
+    { x: right.x, y: right.y - wallHeight },
+    right,
+    top,
+  ]);
+  ctx.fillStyle = '#525f7f';
+  drawIsoPolygon(ctx, [
+    { x: top.x, y: top.y - wallHeight },
+    top,
+    left,
+    { x: left.x, y: left.y - wallHeight },
+  ]);
+
+  ctx.strokeStyle = 'rgba(210, 227, 255, 0.18)';
+  ctx.lineWidth = 2;
+  for (let index = 0; index < 5; index++) {
+    const x = top.x + 48 + index * 74;
+    ctx.beginPath();
+    ctx.moveTo(x, top.y - wallHeight + 8);
+    ctx.lineTo(x + 132, top.y + 56);
+    ctx.stroke();
+  }
+}
+
 function drawIsoWall(ctx: CanvasRenderingContext2D) {
   const topLeft = projectWorldPoint(ISO_WORLD.minX, ISO_WORLD.minY);
   const topRight = projectWorldPoint(ISO_WORLD.maxX, ISO_WORLD.minY);
   const leftBack = { x: topLeft.x, y: topLeft.y - 112 };
   const rightBack = { x: topRight.x, y: topRight.y - 112 };
-  ctx.fillStyle = '#576180';
-  drawIsoPolygon(ctx, [leftBack, rightBack, topRight, topLeft]);
   ctx.strokeStyle = 'rgba(210, 227, 255, 0.38)';
   ctx.lineWidth = 3;
-  ctx.strokeRect(leftBack.x + 138, leftBack.y + 20, 210, 92);
+  ctx.strokeRect(leftBack.x + 138, leftBack.y + 16, 216, 96);
   ctx.fillStyle = 'rgba(8, 18, 46, 0.44)';
-  ctx.fillRect(leftBack.x + 142, leftBack.y + 24, 202, 84);
+  ctx.fillRect(leftBack.x + 142, leftBack.y + 20, 208, 88);
   ctx.strokeStyle = 'rgba(210, 227, 255, 0.16)';
   for (let index = 0; index < 4; index++) {
     ctx.beginPath();
-    ctx.moveTo(leftBack.x + 182 + index * 42, leftBack.y + 24);
-    ctx.lineTo(leftBack.x + 182 + index * 42, leftBack.y + 108);
+    ctx.moveTo(leftBack.x + 184 + index * 42, leftBack.y + 20);
+    ctx.lineTo(leftBack.x + 184 + index * 42, leftBack.y + 108);
     ctx.stroke();
   }
+  drawWallBookshelf(ctx, topLeft.x - 164, topLeft.y - 62, 68, 106);
+  drawWallBookshelf(ctx, topRight.x - 96, topRight.y - 62, 68, 106);
+  drawWallPoster(ctx, rightBack.x - 194, rightBack.y + 26);
 }
 
 function drawIsoRug(ctx: CanvasRenderingContext2D) {
@@ -817,27 +868,53 @@ function drawIsoRug(ctx: CanvasRenderingContext2D) {
     projectWorldPoint(720, 350),
     projectWorldPoint(300, 350),
   ]);
+  ctx.strokeStyle = 'rgba(11, 32, 68, 0.28)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  const rugPoints = [
+    projectWorldPoint(320, 210),
+    projectWorldPoint(700, 210),
+    projectWorldPoint(720, 350),
+    projectWorldPoint(300, 350),
+  ];
+  rugPoints.forEach((point, index) => index === 0 ? ctx.moveTo(point.x, point.y) : ctx.lineTo(point.x, point.y));
+  ctx.closePath();
+  ctx.stroke();
 }
 
-function drawFloatingCodeWindow(ctx: CanvasRenderingContext2D, frame: number) {
+function drawIsoSceneDecor(ctx: CanvasRenderingContext2D, state: WarnyinState, frame: number) {
+  drawFloatingCodeWindow(ctx, state, frame);
+  drawIsoTerminalConsole(ctx, state, frame);
+  drawIsoPlant(ctx, projectWorldPoint(228, 178).x, projectWorldPoint(228, 178).y);
+  drawIsoPlant(ctx, projectWorldPoint(845, 330).x, projectWorldPoint(845, 330).y);
+  drawIsoPlant(ctx, projectWorldPoint(215, 420).x, projectWorldPoint(215, 420).y);
+  drawWaterCooler(ctx, projectWorldPoint(700, 438).x, projectWorldPoint(700, 438).y - 4);
+  drawReceptionCounter(ctx, projectWorldPoint(126, 382).x, projectWorldPoint(126, 382).y + 6);
+  drawSmallMeetingTable(ctx, projectWorldPoint(775, 380).x, projectWorldPoint(775, 380).y + 4);
+}
+
+function drawFloatingCodeWindow(ctx: CanvasRenderingContext2D, state: WarnyinState, frame: number) {
   const pulse = Math.round((Math.sin(frame / 20) + 1) * 2);
   ctx.fillStyle = '#1a2445';
-  ctx.fillRect(620, 72, 252, 144);
+  ctx.fillRect(626, 72, 248, 142);
   ctx.strokeStyle = '#4aa3ff';
   ctx.lineWidth = 3;
-  ctx.strokeRect(620, 72, 252, 144);
+  ctx.strokeRect(626, 72, 248, 142);
   ctx.fillStyle = '#29395e';
-  ctx.fillRect(620, 72, 252, 20);
+  ctx.fillRect(626, 72, 248, 20);
+  ctx.fillStyle = '#ccebdc';
+  ctx.font = 'bold 10px ui-monospace, SFMono-Regular, Menlo, monospace';
+  fitText(ctx, state.activeTopic?.slug ?? 'warnyin/workflow', 640, 86, 156);
   ctx.fillStyle = '#86f2c6';
-  ctx.fillRect(644, 110, 88 + pulse, 6);
+  ctx.fillRect(648, 110, 88 + pulse, 6);
   ctx.fillStyle = '#e69573';
-  ctx.fillRect(658, 130, 118, 6);
+  ctx.fillRect(662, 130, 118, 6);
   ctx.fillStyle = '#8bc6ff';
-  ctx.fillRect(658, 150, 80, 6);
+  ctx.fillRect(662, 150, 80, 6);
   ctx.fillStyle = '#d7c4ff';
-  ctx.fillRect(676, 170, 142, 6);
+  ctx.fillRect(680, 170, 142, 6);
   ctx.fillStyle = '#63d297';
-  ctx.fillRect(676, 190, 96, 6);
+  ctx.fillRect(680, 190, 96, 6);
 }
 
 function drawIsoStageBoard(ctx: CanvasRenderingContext2D, state: WarnyinState) {
@@ -871,6 +948,158 @@ function drawIsoWorkflowActivity(ctx: CanvasRenderingContext2D, state: WarnyinSt
   if (stage === 'build') {
     drawWavePulse(ctx, 255, 190, frame);
   }
+}
+
+function drawIsoTerminalConsole(ctx: CanvasRenderingContext2D, state: WarnyinState, frame: number) {
+  const x = 380;
+  const y = 356;
+  const blink = Math.floor(frame / 24) % 2 === 0;
+  ctx.fillStyle = 'rgba(1, 6, 20, 0.28)';
+  ctx.fillRect(x - 78, y + 54, 264, 14);
+  ctx.fillStyle = '#0b1533';
+  ctx.fillRect(x - 74, y - 76, 262, 120);
+  ctx.strokeStyle = '#4aa3ff';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(x - 74, y - 76, 262, 120);
+  ctx.fillStyle = '#1b2850';
+  ctx.fillRect(x - 74, y - 76, 262, 20);
+  ctx.fillStyle = state.terminal.isOpen ? '#86f2c6' : '#f1b453';
+  ctx.font = 'bold 10px ui-monospace, SFMono-Regular, Menlo, monospace';
+  fitText(ctx, state.terminal.isOpen ? 'TERMINAL OPEN' : 'TERMINAL READY', x - 60, y - 62, 124);
+  ctx.fillStyle = '#ccebdc';
+  fitText(ctx, `$ ${state.terminal.launchCommand}`, x - 58, y - 34, 210);
+  ctx.fillStyle = '#8bc6ff';
+  fitText(ctx, state.commandHistory[0]?.command ?? state.transcript.latestCommand ?? '/warnyin:init', x - 58, y - 14, 210);
+  ctx.fillStyle = '#86f2c6';
+  fitText(ctx, `agents ${state.transcript.agents.length}  sessions ${state.transcript.sessionCount}`, x - 58, y + 6, 210);
+  if (blink) {
+    ctx.fillRect(x + 82, y + 16, 9, 12);
+  }
+  ctx.fillStyle = '#12254c';
+  ctx.fillRect(x + 36, y + 44, 42, 12);
+  ctx.fillStyle = '#101a38';
+  ctx.fillRect(x - 10, y + 56, 136, 12);
+}
+
+function drawIsoFooter(ctx: CanvasRenderingContext2D, state: WarnyinState) {
+  ctx.fillStyle = '#4438b5';
+  ctx.fillRect(0, 438, LOGICAL_WIDTH, 82);
+  ctx.fillStyle = 'rgba(255, 248, 235, 0.12)';
+  for (let x = 0; x < LOGICAL_WIDTH; x += 32) {
+    ctx.fillRect(x, 438, 1, 82);
+  }
+  ctx.fillStyle = '#fff8eb';
+  ctx.font = 'bold 20px ui-monospace, SFMono-Regular, Menlo, monospace';
+  fitText(ctx, 'Claude Code Terminal', 32, 468, 292);
+  ctx.fillStyle = '#ccebdc';
+  ctx.font = 'bold 12px ui-monospace, SFMono-Regular, Menlo, monospace';
+  fitText(ctx, state.commandHistory[0]?.command ?? state.transcript.latestCommand ?? '$ claude', 34, 492, 520);
+  drawFooterLogo(ctx, 846, 478);
+}
+
+function drawFooterLogo(ctx: CanvasRenderingContext2D, x: number, y: number) {
+  ctx.fillStyle = '#fff8eb';
+  ctx.beginPath();
+  ctx.arc(x, y, 33, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#ccebdc';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  ctx.strokeStyle = '#6c351d';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(x, y, 20, 0, Math.PI * 2);
+  ctx.stroke();
+  for (let index = 0; index < 5; index++) {
+    ctx.beginPath();
+    ctx.arc(x, y, 7 + index * 4, Math.PI * 0.18, Math.PI * 1.12);
+    ctx.stroke();
+  }
+}
+
+function drawWallBookshelf(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number) {
+  ctx.fillStyle = '#65371f';
+  ctx.fillRect(x, y, width, height);
+  ctx.fillStyle = '#8a5a34';
+  ctx.fillRect(x + 6, y + 8, width - 12, height - 14);
+  ctx.fillStyle = '#3e4f7d';
+  for (let row = 0; row < 4; row++) {
+    ctx.fillStyle = row % 2 === 0 ? '#c28a2c' : '#8a9a62';
+    for (let col = 0; col < 4; col++) {
+      ctx.fillRect(x + 12 + col * 11, y + 16 + row * 20, 7, 14);
+    }
+    ctx.fillStyle = '#4b2414';
+    ctx.fillRect(x + 10, y + 31 + row * 20, width - 20, 3);
+  }
+}
+
+function drawWallPoster(ctx: CanvasRenderingContext2D, x: number, y: number) {
+  ctx.fillStyle = '#26365e';
+  ctx.fillRect(x, y, 86, 56);
+  ctx.strokeStyle = '#c28a2c';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(x, y, 86, 56);
+  ctx.fillStyle = '#8bc6ff';
+  ctx.fillRect(x + 14, y + 16, 56, 6);
+  ctx.fillStyle = '#86f2c6';
+  ctx.fillRect(x + 14, y + 30, 36, 6);
+}
+
+function drawIsoPlant(ctx: CanvasRenderingContext2D, x: number, y: number) {
+  ctx.fillStyle = 'rgba(1, 6, 20, 0.22)';
+  ctx.fillRect(x - 18, y + 22, 36, 7);
+  ctx.fillStyle = '#6c351d';
+  ctx.fillRect(x - 12, y + 6, 24, 20);
+  ctx.fillStyle = '#2d6f62';
+  ctx.fillRect(x - 6, y - 24, 12, 30);
+  ctx.fillRect(x - 24, y - 10, 20, 14);
+  ctx.fillRect(x + 4, y - 12, 22, 15);
+  ctx.fillStyle = '#8a9a62';
+  ctx.fillRect(x - 2, y - 34, 14, 18);
+}
+
+function drawWaterCooler(ctx: CanvasRenderingContext2D, x: number, y: number) {
+  ctx.fillStyle = 'rgba(1, 6, 20, 0.22)';
+  ctx.fillRect(x - 20, y + 34, 42, 8);
+  ctx.fillStyle = '#8bc6ff';
+  ctx.fillRect(x - 14, y - 22, 28, 30);
+  ctx.fillStyle = '#ccebdc';
+  ctx.fillRect(x - 18, y + 8, 36, 30);
+  ctx.fillStyle = '#3e4f7d';
+  ctx.fillRect(x - 10, y + 18, 20, 6);
+}
+
+function drawReceptionCounter(ctx: CanvasRenderingContext2D, x: number, y: number) {
+  ctx.fillStyle = 'rgba(1, 6, 20, 0.22)';
+  ctx.fillRect(x - 62, y + 34, 126, 10);
+  ctx.fillStyle = '#8a5a34';
+  drawIsoPolygon(ctx, [
+    { x: x - 58, y: y - 4 },
+    { x: x + 8, y: y - 26 },
+    { x: x + 70, y: y - 2 },
+    { x: x, y: y + 22 },
+  ]);
+  ctx.fillStyle = '#6c351d';
+  ctx.fillRect(x - 58, y - 2, 128, 34);
+  ctx.fillStyle = '#fff8eb';
+  ctx.fillRect(x - 22, y - 14, 42, 12);
+}
+
+function drawSmallMeetingTable(ctx: CanvasRenderingContext2D, x: number, y: number) {
+  ctx.fillStyle = 'rgba(1, 6, 20, 0.2)';
+  ctx.fillRect(x - 54, y + 34, 110, 10);
+  ctx.fillStyle = '#caa77a';
+  drawIsoPolygon(ctx, [
+    { x: x - 48, y: y - 4 },
+    { x: x, y: y - 24 },
+    { x: x + 48, y: y - 4 },
+    { x: x, y: y + 18 },
+  ]);
+  ctx.fillStyle = '#8a5a34';
+  ctx.fillRect(x - 46, y + 2, 92, 18);
+  ctx.fillStyle = '#4b2414';
+  ctx.fillRect(x - 34, y + 20, 8, 22);
+  ctx.fillRect(x + 26, y + 20, 8, 22);
 }
 
 function drawIsoPolygon(ctx: CanvasRenderingContext2D, points: Array<{ x: number; y: number }>) {
@@ -1077,6 +1306,35 @@ function drawArchiveCrate(ctx: CanvasRenderingContext2D, x: number, y: number) {
   fitText(ctx, 'SHIP', x - 15, y + 8, 32);
 }
 
+function drawIsoDesk(ctx: CanvasRenderingContext2D, x: number, y: number, main: boolean, frame: number) {
+  const pulse = main ? Math.round((Math.sin(frame / 12) + 1) * 2) : 0;
+  ctx.fillStyle = 'rgba(1, 6, 20, 0.2)';
+  ctx.fillRect(x - 54, y + 28, 112, 10);
+  ctx.fillStyle = '#caa77a';
+  drawIsoPolygon(ctx, [
+    { x: x - 48, y: y - 4 },
+    { x: x - 6, y: y - 22 },
+    { x: x + 52, y: y - 4 },
+    { x: x + 4, y: y + 18 },
+  ]);
+  ctx.fillStyle = main ? '#6c351d' : '#8a5a34';
+  ctx.fillRect(x - 48, y - 2, 100, 26);
+  ctx.fillStyle = '#4b2414';
+  ctx.fillRect(x - 40, y + 24, 10, 22);
+  ctx.fillRect(x + 34, y + 24, 10, 22);
+  ctx.fillStyle = '#101a38';
+  ctx.fillRect(x - 18, y - 38, 42, 26);
+  ctx.strokeStyle = main ? '#86f2c6' : '#4aa3ff';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(x - 18, y - 38, 42, 26);
+  ctx.fillStyle = main ? '#86f2c6' : '#8bc6ff';
+  ctx.fillRect(x - 12, y - 30, 26 + pulse, 4);
+  ctx.fillStyle = '#101a38';
+  ctx.fillRect(x - 2, y - 12, 10, 10);
+  ctx.fillStyle = main ? '#c28a2c' : '#fff8eb';
+  ctx.fillRect(x + 22, y - 8, 18, 7);
+}
+
 function drawDesk(ctx: CanvasRenderingContext2D, x: number, y: number, main: boolean) {
   ctx.fillStyle = main ? '#6c351d' : '#8a5a34';
   ctx.fillRect(x - 42, y, 84, 18);
@@ -1172,7 +1430,7 @@ function drawLogoWall(ctx: CanvasRenderingContext2D, x: number, y: number) {
   ctx.arc(x, y, 28, 0, Math.PI * 2);
   ctx.stroke();
   ctx.lineWidth = 4;
-  for (let index = -2; index <= 2; index++) {
+  for (let index = 0; index < 5; index++) {
     ctx.beginPath();
     ctx.arc(x, y, 9 + index * 5, Math.PI * 0.18, Math.PI * 1.18);
     ctx.stroke();

@@ -121,6 +121,7 @@ const initialState: WarnyinState = {
   terminal: {
     name: 'Warnyin Agents',
     isOpen: false,
+    launchCommand: 'claude',
   },
   officeLayout: defaultOfficeLayout,
   officePresets: [
@@ -201,6 +202,7 @@ export default function App() {
         </div>
         <aside className="controlPane">
           <CommandCenter state={state} />
+          <TerminalPanel state={state} />
           {state.installState === 'installed' ? <WorkflowPanel state={state} /> : null}
           {state.installState === 'installed' ? <PalettePanel state={state} /> : null}
           {state.installState === 'installed' ? <HistoryPanel state={state} /> : null}
@@ -209,6 +211,52 @@ export default function App() {
       </section>
       {toast ? <div className={`toast ${toast.level}`}>{toast.message}</div> : null}
     </main>
+  );
+}
+
+function TerminalPanel({ state }: { state: WarnyinState }) {
+  const latestCommand = state.commandHistory[0]?.command ?? state.transcript.latestCommand ?? '/warnyin:init';
+  const stage = state.transcript.currentStage ?? state.activeTopic?.activeStage ?? 'idle';
+  const activeAgents = state.transcript.agents.filter((agent) => agent.status !== 'offline');
+  const agentLine = activeAgents.length > 0
+    ? activeAgents.slice(0, 3).map((agent) => `${agent.name}:${agent.status}`).join('  ')
+    : 'You:offline';
+  const topicLine = state.activeTopic?.slug ?? state.workspaceName ?? 'workspace';
+  const transcriptLine = state.transcript.enabled
+    ? `${state.transcript.sessionCount} session${state.transcript.sessionCount === 1 ? '' : 's'}`
+    : 'transcript off';
+
+  return (
+    <section className="panelSection terminalSection">
+      <div className="sectionTitle">
+        <Terminal size={16} />
+        <h2>Terminal</h2>
+        <span className={`terminalStatus ${state.terminal.isOpen ? 'open' : 'closed'}`}>
+          {state.terminal.isOpen ? 'Open' : 'Ready'}
+        </span>
+      </div>
+      <div className="terminalScreen" role="region" aria-label="Warnyin terminal">
+        <div className="terminalChrome">
+          <span />
+          <span />
+          <span />
+          <strong>{state.terminal.name}</strong>
+        </div>
+        <code>$ {state.terminal.launchCommand}</code>
+        <code>&gt; {latestCommand}</code>
+        <code>stage: {stage}  topic: {topicLine}</code>
+        <code>agents: {agentLine}</code>
+        <code>watch: {transcriptLine}</code>
+      </div>
+      <button
+        className="primaryButton terminalButton"
+        disabled={state.installState === 'noWorkspace'}
+        onClick={() => vscode.postMessage({ type: 'focusTerminal' })}
+      >
+        <Play size={16} />
+        {state.terminal.isOpen ? 'Focus' : 'Start'}
+      </button>
+    </section>
   );
 }
 
