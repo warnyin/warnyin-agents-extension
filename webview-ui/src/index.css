@@ -222,6 +222,75 @@ h2 {
   gap: 8px;
 }
 
+.pixelAgentsShell {
+  display: grid;
+  grid-template-rows: auto minmax(420px, 1fr) auto;
+  overflow: hidden;
+  border: 1px solid rgba(85, 111, 177, 0.45);
+  border-radius: 8px;
+  background: #07112e;
+  box-shadow: 0 18px 42px rgba(2, 8, 28, 0.58), 0 0 0 1px rgba(151, 184, 230, 0.12);
+}
+
+.pixelAgentsHeader,
+.pixelAgentsFooter {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 12px;
+  background: rgba(7, 17, 46, 0.92);
+  color: var(--paper-soft);
+}
+
+.pixelAgentsHeader strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #ccebdc;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 14px;
+}
+
+.pixelAgentsHeader span,
+.pixelAgentsFooter span {
+  flex: 0 0 auto;
+  color: rgba(255, 248, 235, 0.66);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.pixelAgentsCanvasFrame {
+  min-height: 420px;
+}
+
+.pixelAgentsCanvasFrame canvas {
+  width: 100%;
+  height: 100%;
+  min-height: 420px;
+  display: block;
+  image-rendering: pixelated;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.pixelAgentsFooter {
+  background: #4438b5;
+}
+
+.pixelAgentsFooter code {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #fff8eb;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .layoutToolbar {
   min-height: 40px;
   display: flex;

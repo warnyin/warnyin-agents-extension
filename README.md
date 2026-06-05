@@ -24,9 +24,9 @@ Pixel command center for the Warnyin Standard Workflow and Claude Code agents.
 - Detects stage slugs from `warnyin/stages/*`.
 - Detects archived topics from `warnyin/stages/achieved/*`.
 - Scans workspace-local Claude Code transcripts in `~/.claude/projects/*`.
-- Renders a dark isometric Warnyin pixel office with the main controller and sub-agents.
+- Renders a Pixel Agents-style office using sprite-sheet characters, tile floors, furniture assets, the main controller, and sub-agents.
 - Lets the main controller walk with click-to-move plus WASD/arrow keys.
-- Uses manifest-backed pixel furniture assets with procedural fallbacks.
+- Uses bundled Pixel Agents-style public assets plus Warnyin procedural fallbacks.
 - Persists office seat and furniture layout per workspace with edit, save, reset, import, and export actions.
 - Supports layout import, built-in presets, user-created custom presets, and per-role character palette/body/hair/accessory persistence.
 - Supports furniture placement, multi-select seat/furniture movement, deletion, undo/redo, import preview, layout keyboard shortcuts, and Warnyin-themed office fixtures.
@@ -62,3 +62,7 @@ To run inside VS Code:
 ## Roadmap
 
 See `docs/full-pixel-agents-parity.md`.
+
+## Third-party notices
+
+Bundled pixel office assets include MIT-licensed work from `pixel-agents-hq/pixel-agents`; see `THIRD_PARTY_NOTICES.md`.

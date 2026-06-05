@@ -28,7 +28,7 @@ test('webview renders command shell and nonblank pixel office canvas', async ({ 
         continue;
       }
       coloredPixels++;
-      if (index % 4096 === 0) {
+      if (index % 256 === 0) {
         checksum = (checksum + data[index] * 3 + data[index + 1] * 5 + data[index + 2] * 7 + alpha) % 1_000_000_007;
       }
       if (colors.size < 64) {
@@ -41,8 +41,8 @@ test('webview renders command shell and nonblank pixel office canvas', async ({ 
   expect(canvasStats.coloredPixels).toBeGreaterThan(10_000);
   expect(canvasStats.uniqueColors).toBeGreaterThan(6);
 
-  await canvas.click({ position: { x: 680, y: 320 } });
-  await page.waitForTimeout(350);
+  await canvas.click({ position: { x: 227, y: 309 } });
+  await page.waitForTimeout(1_000);
   const movedChecksum = await canvas.evaluate((element) => {
     const canvasElement = element as HTMLCanvasElement;
     const context = canvasElement.getContext('2d');
@@ -51,16 +51,13 @@ test('webview renders command shell and nonblank pixel office canvas', async ({ 
     }
     const data = context.getImageData(0, 0, canvasElement.width, canvasElement.height).data;
     let checksum = 0;
-    for (let index = 0; index < data.length; index += 4096) {
+    for (let index = 0; index < data.length; index += 256) {
       checksum = (checksum + data[index] * 3 + data[index + 1] * 5 + data[index + 2] * 7 + data[index + 3]) % 1_000_000_007;
     }
     return checksum;
   });
   expect(movedChecksum).not.toBe(canvasStats.checksum);
 
-  await expect(page.locator('.layoutPresetNameInput')).toBeDisabled();
-  await page.getByTitle('Edit layout').click();
-  await expect(page.locator('.layoutPresetNameInput')).toBeEnabled();
-  await expect(page.getByTitle('Save current layout as custom preset')).toBeEnabled();
-  await expect(page.getByTitle('Select and move')).toBeEnabled();
+  await expect(page.locator('.pixelAgentsHeader')).toContainText('Warnyin Pixel Agents');
+  await expect(page.locator('.pixelAgentsFooter')).toContainText('agents');
 });

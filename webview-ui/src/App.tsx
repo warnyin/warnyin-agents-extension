@@ -25,7 +25,7 @@ import {
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import PixelOffice from './PixelOffice';
+import PixelAgentsOffice from './PixelAgentsOffice';
 import type {
   CharacterAccessory,
   CharacterBody,
@@ -198,7 +198,7 @@ export default function App() {
       <section className="workSurface">
         <div className="officePane">
           <StageStrip state={state} />
-          <PixelOffice state={state} />
+          <PixelAgentsOffice state={state} />
         </div>
         <aside className="controlPane">
           <CommandCenter state={state} />
