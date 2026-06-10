@@ -3,17 +3,23 @@ import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
+import * as https from 'https';
+
 import {
   buildSlashCommand as buildSlashCommandCore,
+  buildWarnyinCommand as buildWarnyinCommandCore,
   cleanFreeText as cleanFreeTextCore,
   defaultOfficeLayout as defaultOfficeLayoutCore,
   defaultRolePalette as defaultRolePaletteCore,
   furnitureCatalog as furnitureCatalogCore,
+  isUpdateAvailable as isUpdateAvailableCore,
   normalizeOfficeLayout as normalizeOfficeLayoutCore,
   normalizeRolePalette as normalizeRolePaletteCore,
   officeLayoutPresets as officeLayoutPresetsCore,
+  sortWarnyinCommands as sortWarnyinCommandsCore,
   summarizeChecklist as summarizeChecklistCore,
 } from './domain';
+import type { WarnyinCommand } from './domain';
 
 const VIEW_ID = 'warnyinAgents.view';
 const COMMAND_SHOW_PANEL = 'warnyinAgents.showPanel';
@@ -36,6 +42,11 @@ const TRANSCRIPT_RUNTIME_STATE_PREFIX = 'warnyinAgents.transcriptRuntime.';
 const COMMAND_HISTORY_LIMIT = 20;
 const SAVED_PROMPTS_LIMIT = 40;
 const CUSTOM_OFFICE_PRESETS_LIMIT = 12;
+const WARNYIN_PACKAGE_NAME = '@warnyin/agents';
+const INSTALLED_VERSION_STATE_PREFIX = 'warnyinAgents.installedVersion.';
+const LATEST_VERSION_CACHE_STATE_KEY = 'warnyinAgents.latestVersionCache';
+const LATEST_VERSION_TTL_MS = 6 * 60 * 60 * 1_000;
+const LATEST_VERSION_FETCH_TIMEOUT_MS = 5_000;
 
 type StageId = 'discovery' | 'design' | 'build' | 'verify' | 'ship';
 type CommandStageId = StageId | 'init' | 'codemap' | 'skill' | 'explore' | 'next';
@@ -218,11 +229,27 @@ interface SavedPromptEntry {
   updatedAt: number;
 }
 
+interface WarnyinVersionInfo {
+  packageName: string;
+  installed?: string;
+  latest?: string;
+  updateAvailable: boolean;
+  checkedAt: number;
+  offline: boolean;
+}
+
+interface LatestVersionCache {
+  value?: string;
+  checkedAt: number;
+}
+
 interface WarnyinState {
   workspacePath?: string;
   workspaceName?: string;
   installState: InstallState;
   installed: boolean;
+  warnyinVersion: WarnyinVersionInfo;
+  availableCommands: WarnyinCommand[];
   slugs: string[];
   archivedSlugs: string[];
   topics: TopicState[];
@@ -249,6 +276,7 @@ interface WarnyinState {
 type WebviewMessage =
   | { type: 'ready' }
   | { type: 'refresh' }
+  | { type: 'checkVersion' }
   | { type: 'runInstaller'; mode: 'install' | 'dryRun' | 'update' }
   | { type: 'focusTerminal' }
   | { type: 'saveOfficeLayout'; layout: OfficeLayout }
@@ -352,6 +380,8 @@ class WarnyinAgentsViewProvider implements vscode.WebviewViewProvider, vscode.Di
   private refreshTimer?: ReturnType<typeof setTimeout>;
   private lastTranscriptDir?: string;
   private lastBlockedNotificationKey?: string;
+  private latestVersionCache?: LatestVersionCache;
+  private latestVersionInFlight?: Promise<LatestVersionCache>;
   private disposed = false;
 
   constructor(private readonly context: vscode.ExtensionContext) {
@@ -453,9 +483,106 @@ class WarnyinAgentsViewProvider implements vscode.WebviewViewProvider, vscode.Di
       cwd: folder.uri.fsPath,
     });
     terminal.show();
-    terminal.sendText(`npx @warnyin/agents${args}`);
+    terminal.sendText(`npx ${WARNYIN_PACKAGE_NAME}${args}`);
     this.postToast(`Started ${mode === 'dryRun' ? 'installer dry run' : mode === 'update' ? 'workflow update' : 'Warnyin install'} in terminal.`, 'info');
+
+    // A dry run does not change the workspace, so the recorded installed version stays untouched.
+    // For install/update the CLI always pulls the npm `latest` dist-tag, so we stamp that version
+    // (best effort) as the now-installed version once the latest lookup resolves.
+    if (mode === 'install' || mode === 'update') {
+      void this.recordInstalledVersionFromLatest(folder.uri.fsPath);
+    }
+
     this.scheduleRefresh(3_000);
+  }
+
+  private async recordInstalledVersionFromLatest(workspacePath: string): Promise<void> {
+    try {
+      const cache = await this.getLatestVersion(true);
+      if (cache.value) {
+        await this.context.globalState.update(installedVersionStateKey(workspacePath), cache.value);
+        this.scheduleRefresh(3_500);
+      }
+    } catch {
+      // Offline or registry failure — leave the previously recorded version in place.
+    }
+  }
+
+  /** Explicit user-triggered "check for updates" — forces a registry lookup and reports the result. */
+  async checkLatestVersion(): Promise<void> {
+    const cache = await this.getLatestVersion(true);
+    if (!cache.value) {
+      this.postToast('Could not reach npm to check the latest Warnyin version.', 'warning');
+    } else {
+      const folder = getPrimaryWorkspaceFolder();
+      const installed = folder ? this.getInstalledVersion(folder.uri.fsPath) : undefined;
+      if (installed && isUpdateAvailableCore(installed, cache.value)) {
+        this.postToast(`Warnyin update available: ${installed} → ${cache.value}.`, 'info');
+      } else {
+        this.postToast(`Latest Warnyin workflow: ${cache.value}.`, 'info');
+      }
+    }
+    this.scheduleRefresh(0);
+  }
+
+  private getInstalledVersion(workspacePath: string): string | undefined {
+    const stored = this.context.globalState.get<string>(installedVersionStateKey(workspacePath));
+    return typeof stored === 'string' && stored.trim() ? stored.trim() : undefined;
+  }
+
+  /**
+   * Resolve the latest published `@warnyin/agents` version. Cached in memory and in
+   * globalState with a TTL so frequent state rebuilds never hit the network. On a
+   * registry failure the last known value is reused and the lookup is marked offline.
+   */
+  private async getLatestVersion(force = false): Promise<LatestVersionCache> {
+    const now = Date.now();
+    const cached = this.latestVersionCache
+      ?? this.context.globalState.get<LatestVersionCache>(LATEST_VERSION_CACHE_STATE_KEY);
+    if (cached) {
+      this.latestVersionCache = cached;
+      const fresh = cached.value && now - cached.checkedAt < LATEST_VERSION_TTL_MS;
+      if (!force && fresh) {
+        return cached;
+      }
+    }
+
+    if (this.latestVersionInFlight) {
+      return this.latestVersionInFlight;
+    }
+
+    const lookup = (async (): Promise<LatestVersionCache> => {
+      try {
+        const value = await fetchLatestNpmVersion(WARNYIN_PACKAGE_NAME);
+        const next: LatestVersionCache = { value, checkedAt: Date.now() };
+        this.latestVersionCache = next;
+        await this.context.globalState.update(LATEST_VERSION_CACHE_STATE_KEY, next);
+        return next;
+      } catch {
+        // Preserve the last known good value but keep the stale timestamp so a later
+        // attempt re-tries. buildVersionInfo() reports this state as offline.
+        return cached ?? { value: undefined, checkedAt: 0 };
+      } finally {
+        this.latestVersionInFlight = undefined;
+      }
+    })();
+
+    this.latestVersionInFlight = lookup;
+    return lookup;
+  }
+
+  private async buildVersionInfo(workspacePath: string | undefined, installed: boolean): Promise<WarnyinVersionInfo> {
+    const cache = await this.getLatestVersion(false);
+    const recorded = installed && workspacePath ? this.getInstalledVersion(workspacePath) : undefined;
+    const stale = !cache.value || Date.now() - cache.checkedAt >= LATEST_VERSION_TTL_MS;
+    return {
+      packageName: WARNYIN_PACKAGE_NAME,
+      installed: recorded,
+      latest: cache.value,
+      updateAvailable: installed ? isUpdateAvailableCore(recorded, cache.value) : false,
+      checkedAt: cache.checkedAt,
+      offline: stale,
+    };
   }
 
   focusTerminal(): void {
@@ -562,6 +689,9 @@ class WarnyinAgentsViewProvider implements vscode.WebviewViewProvider, vscode.Di
       case 'ready':
       case 'refresh':
         this.scheduleRefresh(0);
+        break;
+      case 'checkVersion':
+        await this.checkLatestVersion();
         break;
       case 'runInstaller':
         await this.runInstaller(message.mode);
@@ -962,6 +1092,8 @@ class WarnyinAgentsViewProvider implements vscode.WebviewViewProvider, vscode.Di
       return {
         installState: 'noWorkspace',
         installed: false,
+        warnyinVersion: await this.buildVersionInfo(undefined, false),
+        availableCommands: [],
         slugs: [],
         archivedSlugs: [],
         topics: [],
@@ -989,6 +1121,7 @@ class WarnyinAgentsViewProvider implements vscode.WebviewViewProvider, vscode.Di
     const installed = await isWarnyinInstalled(workspacePath);
     const topics = installed ? await readTopics(workspacePath) : [];
     const archivedSlugs = installed ? await readArchivedSlugs(workspacePath) : [];
+    const availableCommands = installed ? await readWarnyinCommands(workspacePath) : [];
     const activeTopic = topics[0];
     const stageFlow = activeTopic?.stages ?? EMPTY_STAGE_FLOW;
     const transcriptEnabled = vscode.workspace
@@ -1012,6 +1145,8 @@ class WarnyinAgentsViewProvider implements vscode.WebviewViewProvider, vscode.Di
       workspaceName: folder.name,
       installState: installed ? 'installed' : 'notInstalled',
       installed,
+      warnyinVersion: await this.buildVersionInfo(workspacePath, installed),
+      availableCommands,
       slugs: topics.map((topic) => topic.slug),
       archivedSlugs,
       topics,
@@ -1256,6 +1391,33 @@ async function readTopics(workspacePath: string): Promise<TopicState[]> {
 
   topics.sort((a, b) => b.latestMtime - a.latestMtime || a.slug.localeCompare(b.slug));
   return topics;
+}
+
+async function readWarnyinCommands(workspacePath: string): Promise<WarnyinCommand[]> {
+  const commandsDir = path.join(workspacePath, '.claude', 'commands', 'warnyin');
+  let entries: fs.Dirent[];
+  try {
+    entries = await fs.promises.readdir(commandsDir, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+
+  const files = entries
+    .filter((entry) => entry.isFile() && entry.name.toLowerCase().endsWith('.md'))
+    .slice(0, 60);
+
+  const commands = await Promise.all(
+    files.map(async (entry) => {
+      try {
+        const raw = await fs.promises.readFile(path.join(commandsDir, entry.name), 'utf8');
+        return buildWarnyinCommandCore(entry.name, raw);
+      } catch {
+        return undefined;
+      }
+    }),
+  );
+
+  return sortWarnyinCommandsCore(commands.filter((command): command is WarnyinCommand => command !== undefined));
 }
 
 async function readArchivedSlugs(workspacePath: string): Promise<string[]> {
@@ -1871,6 +2033,53 @@ function savedPromptsStateKey(workspacePath: string): string {
 
 function transcriptRuntimeStateKey(workspacePath: string): string {
   return `${TRANSCRIPT_RUNTIME_STATE_PREFIX}${normalizeProjectPath(workspacePath)}`;
+}
+
+function installedVersionStateKey(workspacePath: string): string {
+  return `${INSTALLED_VERSION_STATE_PREFIX}${normalizeProjectPath(workspacePath)}`;
+}
+
+/**
+ * Fetch the `latest` dist-tag version of an npm package from the public registry.
+ * Resolves to the version string, or undefined when the response is malformed.
+ * Rejects on network/timeout/non-200 so callers can treat it as an offline state.
+ */
+function fetchLatestNpmVersion(packageName: string): Promise<string | undefined> {
+  const url = `https://registry.npmjs.org/${packageName}/latest`;
+  return new Promise((resolve, reject) => {
+    const request = https.get(
+      url,
+      { headers: { accept: 'application/vnd.npm.install-v1+json', 'user-agent': 'warnyin-agents-extension' } },
+      (response) => {
+        const status = response.statusCode ?? 0;
+        if (status < 200 || status >= 300) {
+          response.resume();
+          reject(new Error(`Registry responded with status ${status}`));
+          return;
+        }
+        let raw = '';
+        response.setEncoding('utf8');
+        response.on('data', (chunk) => {
+          raw += chunk;
+          if (raw.length > 1_000_000) {
+            request.destroy(new Error('Registry response too large'));
+          }
+        });
+        response.on('end', () => {
+          try {
+            const parsed = JSON.parse(raw) as { version?: unknown };
+            resolve(typeof parsed.version === 'string' ? parsed.version : undefined);
+          } catch {
+            reject(new Error('Could not parse registry response'));
+          }
+        });
+      },
+    );
+    request.setTimeout(LATEST_VERSION_FETCH_TIMEOUT_MS, () => {
+      request.destroy(new Error('Registry request timed out'));
+    });
+    request.on('error', reject);
+  });
 }
 
 function resolveClaudeProjectDir(workspacePath: string): string | undefined {

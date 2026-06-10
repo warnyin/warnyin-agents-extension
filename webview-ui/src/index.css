@@ -757,6 +757,151 @@ h2 {
   color: var(--rose);
 }
 
+.versionBadge {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper-soft);
+  color: var(--cocoa);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.versionBadge .versionBadgeLabel {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.versionBadge .versionBadgeNote {
+  flex: 0 0 auto;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(108, 53, 29, 0.12);
+  color: rgba(75, 36, 20, 0.72);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.versionBadge .iconButton {
+  flex: 0 0 26px;
+  width: 26px;
+  height: 26px;
+}
+
+.versionBadge.update {
+  border-color: rgba(194, 138, 44, 0.55);
+  background: rgba(194, 138, 44, 0.12);
+  color: var(--amber);
+}
+
+.versionBadge.current {
+  border-color: rgba(45, 111, 98, 0.4);
+  color: var(--teal);
+}
+
+.versionBadge.unknown {
+  color: rgba(75, 36, 20, 0.62);
+}
+
+.commandTile.hasUpdate {
+  position: relative;
+  border-color: rgba(194, 138, 44, 0.6);
+  color: var(--amber);
+}
+
+.commandTile .updateDot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--amber);
+  box-shadow: 0 0 0 2px var(--paper-soft);
+}
+
+.versionHint {
+  margin-top: 6px;
+  font-size: 11px;
+}
+
+.autoCommands {
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px dashed rgba(210, 180, 140, 0.7);
+  display: grid;
+  gap: 6px;
+}
+
+.autoCommandsHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(75, 36, 20, 0.62);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.autoCommandList {
+  display: grid;
+  gap: 5px;
+}
+
+.autoCommandRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper-soft);
+}
+
+.autoCommandName {
+  flex: 0 0 auto;
+  color: var(--cocoa);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.autoCommandDesc {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(75, 36, 20, 0.62);
+  font-size: 11px;
+}
+
+.autoCommandInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 3px 7px;
+  border: 1px solid rgba(210, 180, 140, 0.55);
+  border-radius: 7px;
+  background: rgba(244, 234, 217, 0.46);
+  color: var(--ink);
+  font-size: 11px;
+}
+
+.autoCommandRow .iconButton.run {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+}
+
 .commandRow {
   display: grid;
   grid-template-columns: 86px minmax(0, 1fr) 32px;
