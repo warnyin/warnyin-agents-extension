@@ -161,11 +161,30 @@ export interface SavedPromptEntry {
   updatedAt: number;
 }
 
+export interface WarnyinVersionInfo {
+  packageName: string;
+  installed?: string;
+  latest?: string;
+  updateAvailable: boolean;
+  checkedAt: number;
+  offline: boolean;
+}
+
+export interface WarnyinCommand {
+  id: string;
+  slug: string;
+  description: string;
+  argumentHint?: string;
+  hasArgs: boolean;
+}
+
 export interface WarnyinState {
   workspacePath?: string;
   workspaceName?: string;
   installState: InstallState;
   installed: boolean;
+  warnyinVersion: WarnyinVersionInfo;
+  availableCommands: WarnyinCommand[];
   slugs: string[];
   archivedSlugs: string[];
   topics: TopicState[];

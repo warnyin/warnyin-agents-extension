@@ -381,3 +381,170 @@ function isCharacterHairStyle(value: unknown): value is CharacterHairStyle {
 function isCharacterAccessory(value: unknown): value is CharacterAccessory {
   return value === 'none' || value === 'badge' || value === 'headset';
 }
+
+export interface WarnyinVersionInfo {
+  packageName: string;
+  installed?: string;
+  latest?: string;
+  updateAvailable: boolean;
+  checkedAt: number;
+  offline: boolean;
+}
+
+/**
+ * Parse a `major.minor.patch` semver core into a numeric tuple.
+ * Ignores any pre-release/build metadata suffix. Returns undefined for
+ * values that do not start with a numeric `x.y.z` core.
+ */
+export function parseSemver(value: string): [number, number, number] | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+  const core = value.trim().replace(/^v/i, '').split(/[-+]/, 1)[0];
+  const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(core);
+  if (!match) {
+    return undefined;
+  }
+  return [Number(match[1]), Number(match[2]), Number(match[3])];
+}
+
+/**
+ * Compare two semver strings. Returns 1 when `a` is newer, -1 when `b` is
+ * newer, and 0 when equal. Unparseable inputs fall back to a stable string
+ * comparison so the result is always deterministic.
+ */
+export function compareSemver(a: string, b: string): number {
+  const left = parseSemver(a);
+  const right = parseSemver(b);
+  if (!left || !right) {
+    if (a === b) {
+      return 0;
+    }
+    return a < b ? -1 : 1;
+  }
+  for (let index = 0; index < 3; index++) {
+    if (left[index] !== right[index]) {
+      return left[index] < right[index] ? -1 : 1;
+    }
+  }
+  return 0;
+}
+
+/**
+ * True when `latest` is strictly newer than `installed`. Missing values
+ * (unknown installed or latest) never report an update.
+ */
+export function isUpdateAvailable(installed: string | undefined, latest: string | undefined): boolean {
+  if (!installed || !latest) {
+    return false;
+  }
+  return compareSemver(latest, installed) > 0;
+}
+
+export interface WarnyinCommand {
+  id: string;
+  slug: string;
+  description: string;
+  argumentHint?: string;
+  hasArgs: boolean;
+}
+
+/**
+ * Canonical workflow order. Commands not listed here are unknown to this
+ * extension build (e.g. added by a newer @warnyin/agents release) and are
+ * appended alphabetically so they still surface as buttons automatically.
+ */
+const WARNYIN_COMMAND_ORDER: readonly string[] = [
+  'init',
+  'discovery',
+  'design',
+  'build',
+  'verify',
+  'ship',
+  'next',
+  'explore',
+  'install-skill',
+  'update-codemaps',
+];
+
+/**
+ * Parse the leading YAML-style frontmatter block of a command markdown file.
+ * Recognizes the `description` and `argument-hint` keys, stripping a single
+ * layer of matching surrounding quotes. Returns empty fields when no
+ * frontmatter block is present.
+ */
+export function parseCommandFrontmatter(raw: string): { description?: string; argumentHint?: string } {
+  if (typeof raw !== 'string') {
+    return {};
+  }
+  const text = raw.replace(/^﻿/, '');
+  const match = /^---\r?\n([\s\S]*?)\r?\n---/.exec(text);
+  if (!match) {
+    return {};
+  }
+  const result: { description?: string; argumentHint?: string } = {};
+  for (const line of match[1].split(/\r?\n/)) {
+    const pair = /^([A-Za-z][\w-]*):\s*(.*)$/.exec(line);
+    if (!pair) {
+      continue;
+    }
+    const key = pair[1].toLowerCase();
+    const value = stripMatchingQuotes(pair[2].trim());
+    if (key === 'description') {
+      result.description = value;
+    } else if (key === 'argument-hint') {
+      result.argumentHint = value;
+    }
+  }
+  return result;
+}
+
+function stripMatchingQuotes(value: string): string {
+  if (value.length >= 2) {
+    const first = value[0];
+    const last = value[value.length - 1];
+    if ((first === '"' && last === '"') || (first === "'" && last === "'")) {
+      return value.slice(1, -1);
+    }
+  }
+  return value;
+}
+
+/**
+ * Build a WarnyinCommand descriptor from a command file name (with or without
+ * the `.md` extension) and its raw markdown contents. The command id is the
+ * file's base name, the slug is the `/warnyin:<id>` invocation, and `hasArgs`
+ * reflects whether the frontmatter declares an argument hint.
+ */
+export function buildWarnyinCommand(fileName: string, raw: string): WarnyinCommand {
+  const id = fileName.replace(/\.md$/i, '').trim();
+  const front = parseCommandFrontmatter(raw);
+  const argumentHint = front.argumentHint?.trim() ? front.argumentHint.trim() : undefined;
+  return {
+    id,
+    slug: `/warnyin:${id}`,
+    description: front.description?.trim() ?? '',
+    argumentHint,
+    hasArgs: Boolean(argumentHint),
+  };
+}
+
+/**
+ * Sort commands by the canonical workflow order, with any unrecognized
+ * commands appended alphabetically so newly added commands still surface.
+ */
+export function sortWarnyinCommands(commands: readonly WarnyinCommand[]): WarnyinCommand[] {
+  return [...commands].sort((a, b) => {
+    const rankA = rankWarnyinCommand(a.id);
+    const rankB = rankWarnyinCommand(b.id);
+    if (rankA !== rankB) {
+      return rankA - rankB;
+    }
+    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+  });
+}
+
+function rankWarnyinCommand(id: string): number {
+  const index = WARNYIN_COMMAND_ORDER.indexOf(id);
+  return index === -1 ? WARNYIN_COMMAND_ORDER.length : index;
+}

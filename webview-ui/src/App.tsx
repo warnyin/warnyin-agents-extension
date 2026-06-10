@@ -33,7 +33,9 @@ import type {
   CharacterHairStyle,
   ExtensionMessage,
   StageId,
+  WarnyinCommand,
   WarnyinState,
+  WarnyinVersionInfo,
 } from './types';
 import { logoUri, vscode } from './vscode';
 
@@ -92,6 +94,13 @@ const defaultRolePalette = {
 const initialState: WarnyinState = {
   installState: 'noWorkspace',
   installed: false,
+  warnyinVersion: {
+    packageName: '@warnyin/agents',
+    updateAvailable: false,
+    checkedAt: 0,
+    offline: false,
+  },
+  availableCommands: [],
   slugs: [],
   archivedSlugs: [],
   topics: [],
@@ -417,7 +426,40 @@ function InstallPanel({ state }: { state: WarnyinState }) {
           Dry Run
         </button>
       </div>
+      {!noWorkspace && state.warnyinVersion.latest ? (
+        <p className="mutedText versionHint">
+          Installs {state.warnyinVersion.packageName} v{state.warnyinVersion.latest} (latest).
+        </p>
+      ) : null}
     </section>
+  );
+}
+
+function WorkflowVersionBadge({ version }: { version: WarnyinVersionInfo }) {
+  const installed = version.installed ?? 'unknown';
+  const latest = version.latest ?? '—';
+  const statusLabel = version.updateAvailable
+    ? `Update available · ${installed} → ${latest}`
+    : version.installed && version.latest
+      ? `Up to date · v${installed}`
+      : version.latest
+        ? `Latest ${version.packageName} · v${latest}`
+        : 'Version unavailable';
+  const tone = version.updateAvailable ? 'update' : version.latest ? 'current' : 'unknown';
+
+  return (
+    <div className={`versionBadge ${tone}`}>
+      <PackageCheck size={14} />
+      <span className="versionBadgeLabel">{statusLabel}</span>
+      {version.offline ? <span className="versionBadgeNote">offline</span> : null}
+      <button
+        className="iconButton"
+        title="Check npm for the latest Warnyin workflow version"
+        onClick={() => vscode.postMessage({ type: 'checkVersion' })}
+      >
+        <RefreshCcw size={14} />
+      </button>
+    </div>
   );
 }
 
@@ -468,6 +510,8 @@ function InstalledCommands({ state }: { state: WarnyinState }) {
       defaultOpen={false}
     >
 
+      <WorkflowVersionBadge version={state.warnyinVersion} />
+
       <div className="quickGrid">
         <button className="commandTile" onClick={() => runCommand('init')}>
           <Play size={16} />
@@ -481,9 +525,18 @@ function InstalledCommands({ state }: { state: WarnyinState }) {
           <RefreshCcw size={16} />
           Codemap
         </button>
-        <button className="commandTile" onClick={() => vscode.postMessage({ type: 'runInstaller', mode: 'update' })}>
+        <button
+          className={`commandTile${state.warnyinVersion.updateAvailable ? ' hasUpdate' : ''}`}
+          title={
+            state.warnyinVersion.updateAvailable && state.warnyinVersion.latest
+              ? `Update workflow to ${state.warnyinVersion.latest}`
+              : 'Update Warnyin workflow'
+          }
+          onClick={() => vscode.postMessage({ type: 'runInstaller', mode: 'update' })}
+        >
           <Wrench size={16} />
           Update
+          {state.warnyinVersion.updateAvailable ? <span className="updateDot" aria-hidden /> : null}
         </button>
       </div>
 
@@ -572,7 +625,62 @@ function InstalledCommands({ state }: { state: WarnyinState }) {
         <StageCommand id="ship" label="Ship" icon={<CheckCircle2 size={16} />} slug={stageSlug} setSlug={setStageSlug} slugs={slugOptions} />
         <code className="commandPreview">{stagePreview}</code>
       </div>
+
+      <AutoCommandPanel commands={state.availableCommands} />
     </CollapsiblePanel>
+  );
+}
+
+function AutoCommandPanel({ commands }: { commands: WarnyinCommand[] }) {
+  if (commands.length === 0) {
+    return null;
+  }
+  return (
+    <div className="autoCommands">
+      <div className="autoCommandsHead">
+        <Radio size={13} />
+        <span>Installed commands · auto-detected</span>
+      </div>
+      <div className="autoCommandList">
+        {commands.map((command) => (
+          <AutoCommandRow key={command.id} command={command} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AutoCommandRow({ command }: { command: WarnyinCommand }) {
+  const [args, setArgs] = useState('');
+
+  const run = () => {
+    const trimmed = args.trim();
+    const full = command.hasArgs && trimmed ? `${command.slug} ${trimmed}` : command.slug;
+    vscode.postMessage({ type: 'runRawCommand', command: full });
+  };
+
+  return (
+    <div className="autoCommandRow" title={command.description || command.slug}>
+      <span className="autoCommandName">{command.slug}</span>
+      {command.hasArgs ? (
+        <input
+          className="autoCommandInput"
+          value={args}
+          onChange={(event) => setArgs(event.target.value)}
+          placeholder={command.argumentHint ?? 'arguments'}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              run();
+            }
+          }}
+        />
+      ) : (
+        <span className="autoCommandDesc">{command.description}</span>
+      )}
+      <button className="iconButton run" title={`Run ${command.slug}`} onClick={run}>
+        <Send size={15} />
+      </button>
+    </div>
   );
 }
 
