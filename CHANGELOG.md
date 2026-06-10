@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0
+
+- Shows the installed and latest `@warnyin/agents` version on the Commands panel, with an update indicator and a refresh-from-npm button (track-on-install).
+- Auto-detects installed slash commands by scanning `.claude/commands/warnyin/*.md`, rendering dynamic buttons so new commands from a workflow update appear without an extension release.
+
 ## 0.1.1
 
 - Improves narrow VS Code panel responsiveness.

@@ -2,7 +2,7 @@
   "name": "warnyin-agents-extension",
   "displayName": "Warnyin Agents",
   "description": "Pixel command center for the Warnyin Standard Workflow and Claude Code agents.",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "publisher": "warnyin",
   "license": "MIT",
   "icon": "logo.png",
